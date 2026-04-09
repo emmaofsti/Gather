@@ -19,13 +19,6 @@ export function PeaksGrid({ all }: { all: LightboxItem[] }) {
   async function handleTogglePeak(item: LightboxItem) {
     const supabase = createClient();
     const next = !item.is_peak;
-    if (next) {
-      const count = items.filter((x) => x.is_peak).length;
-      if (count >= 5) {
-        alert("Maks 5 peaks. Fjern én først.");
-        return;
-      }
-    }
     const { error } = await supabase.from("media").update({ is_peak: next }).eq("id", item.id);
     if (error) { alert(error.message); return; }
     setItems((prev) => prev.map((x) => (x.id === item.id ? { ...x, is_peak: next } : x)));

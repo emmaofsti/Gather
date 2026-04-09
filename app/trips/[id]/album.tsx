@@ -1,5 +1,5 @@
 "use client";
-import { useState, useRef } from "react";
+import { useMemo, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Lightbox, type LightboxItem } from "@/components/lightbox";
@@ -17,6 +17,10 @@ type Item = {
 
 export function Album({ tripId, initial, currentUserId }: { tripId: string; initial: Item[]; currentUserId?: string }) {
   const [items, setItems] = useState(initial);
+  const ordered = useMemo(
+    () => [...items].sort((a, b) => Number(!!b.is_peak) - Number(!!a.is_peak)),
+    [items]
+  );
   const [uploading, setUploading] = useState(false);
   const [open, setOpen] = useState<number | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -61,13 +65,6 @@ export function Album({ tripId, initial, currentUserId }: { tripId: string; init
   async function handleTogglePeak(item: LightboxItem) {
     const supabase = createClient();
     const next = !item.is_peak;
-    if (next) {
-      const currentPeaks = items.filter((x) => x.is_peak).length;
-      if (currentPeaks >= 5) {
-        alert("Du kan kun ha 5 peak-bilder. Fjern ett først.");
-        return;
-      }
-    }
     const { error } = await supabase.from("media").update({ is_peak: next }).eq("id", item.id);
     if (error) { alert(error.message); return; }
     setItems((prev) => prev.map((x) => (x.id === item.id ? { ...x, is_peak: next } : x)));
@@ -99,31 +96,33 @@ export function Album({ tripId, initial, currentUserId }: { tripId: string; init
           <p className="mt-1 text-sm text-muted">Last opp det første for å starte minnealbumet</p>
         </div>
       ) : (
-        <div className="grid grid-cols-3 gap-2">
-          {items.map((m, i) => (
-            <button
-              key={m.id}
-              onClick={() => setOpen(i)}
-              className="aspect-square overflow-hidden rounded-2xl bg-card shadow-soft transition active:scale-95"
-            >
-              <div className="relative h-full w-full">
+        <div className="columns-2 gap-2 sm:columns-3 [&>*]:mb-2">
+          {ordered.map((m) => {
+            const idx = ordered.findIndex((x) => x.id === m.id);
+            return (
+              <button
+                key={m.id}
+                onClick={() => setOpen(idx)}
+                className="relative block w-full overflow-hidden rounded-2xl bg-card shadow-soft transition active:scale-95"
+                style={{ breakInside: "avoid" }}
+              >
                 {m.kind === "video" ? (
-                  <video src={m.url} className="h-full w-full object-cover" />
+                  <video src={m.url} className="h-auto w-full" />
                 ) : (
-                  <img src={m.url} className="h-full w-full object-cover" alt="" />
+                  <img src={m.url} className="h-auto w-full" alt="" />
                 )}
                 {m.is_peak && (
                   <span className="absolute right-1.5 top-1.5 rounded-full bg-black/70 px-1.5 text-xs text-yellow-300">★</span>
                 )}
-              </div>
-            </button>
-          ))}
+              </button>
+            );
+          })}
         </div>
       )}
 
       {open !== null && (
         <Lightbox
-          items={items}
+          items={ordered}
           index={open}
           onClose={() => setOpen(null)}
           currentUserId={currentUserId}
