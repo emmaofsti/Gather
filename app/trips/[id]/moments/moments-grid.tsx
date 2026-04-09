@@ -14,8 +14,12 @@ export function MomentsGrid({ items: initial, currentUserId }: { items: Item[]; 
 
   async function handleDelete(item: LightboxItem) {
     const supabase = createClient();
-    const { error } = await supabase.from("media").delete().eq("id", item.id);
+    const { data: deleted, error } = await supabase.from("media").delete().eq("id", item.id).select();
     if (error) { alert(error.message); return; }
+    if (!deleted || deleted.length === 0) {
+      alert("Sletting blokkert (RLS). Kjør migration 0002 i Supabase.");
+      return;
+    }
     const paths = [item.storage_path, item.secondary_storage_path].filter(Boolean) as string[];
     if (paths.length) {
       await supabase.storage.from("trip-media").remove(paths);
