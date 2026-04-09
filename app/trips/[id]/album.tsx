@@ -71,15 +71,19 @@ export function Album({ tripId, initial, currentUserId, cropped }: { tripId: str
     router.refresh();
   }
 
+  const uploadBtn = (
+    <button
+      onClick={() => inputRef.current?.click()}
+      disabled={uploading}
+      className={`${cropped ? "mt-4" : "mb-4 mt-2"} w-full rounded-full bg-accent py-4 text-base font-bold text-white shadow-soft transition active:scale-[0.98] disabled:opacity-50`}
+    >
+      {uploading ? "Laster opp…" : "+ Last opp bilder"}
+    </button>
+  );
+
   return (
     <>
-      <button
-        onClick={() => inputRef.current?.click()}
-        disabled={uploading}
-        className="mb-4 mt-2 w-full rounded-full bg-accent py-4 text-base font-bold text-white shadow-soft transition active:scale-[0.98] disabled:opacity-50"
-      >
-        {uploading ? "Laster opp…" : "+ Last opp bilder"}
-      </button>
+      {!cropped && uploadBtn}
       <input
         ref={inputRef}
         type="file"
@@ -125,6 +129,8 @@ export function Album({ tripId, initial, currentUserId, cropped }: { tripId: str
           })}
         </div>
       )}
+
+      {cropped && uploadBtn}
 
       {open !== null && (
         <Lightbox
