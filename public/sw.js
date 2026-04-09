@@ -19,14 +19,17 @@ self.addEventListener("push", (event) => {
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const url = event.notification.data?.url || "/";
+  const target = new URL(event.notification.data?.url || "/", self.location.origin).href;
   event.waitUntil(
     (async () => {
       const all = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
       for (const c of all) {
-        if ("focus" in c) { c.navigate(url); return c.focus(); }
+        try {
+          await c.navigate(target);
+          return c.focus();
+        } catch {}
       }
-      return self.clients.openWindow(url);
+      return self.clients.openWindow(target);
     })()
   );
 });

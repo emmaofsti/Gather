@@ -84,7 +84,7 @@ export default async function TripPage({ params }: { params: { id: string } }) {
 
       <div className="mt-4 px-5">
         <PushOptIn />
-        <TestMomentButton />
+        <TestMomentButton tripId={trip.id} />
       </div>
 
       <div className="mt-2 px-5">

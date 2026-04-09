@@ -9,6 +9,7 @@ export async function GET(req: Request) {
   const auth = req.headers.get("authorization");
   const url = new URL(req.url);
   const force = url.searchParams.get("force") === "1";
+  const tripFilter = url.searchParams.get("trip");
   const expected = `Bearer ${process.env.CRON_SECRET}`;
   if (auth !== expected) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
@@ -20,10 +21,13 @@ export async function GET(req: Request) {
   const admin = createAdmin();
   const today = new Date().toISOString().slice(0, 10);
 
-  const { data: trips, error: tripsErr } = await admin
-    .from("trips")
-    .select("id, name")
-    .or(`end_date.is.null,end_date.gte.${today}`);
+  let tripsQuery = admin.from("trips").select("id, name");
+  if (tripFilter) {
+    tripsQuery = tripsQuery.eq("id", tripFilter);
+  } else {
+    tripsQuery = tripsQuery.or(`end_date.is.null,end_date.gte.${today}`);
+  }
+  const { data: trips, error: tripsErr } = await tripsQuery;
 
   if (tripsErr) return NextResponse.json({ error: tripsErr.message }, { status: 500 });
 
