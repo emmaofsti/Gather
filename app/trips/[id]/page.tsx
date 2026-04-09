@@ -14,11 +14,19 @@ export default async function TripPage({ params }: { params: { id: string } }) {
 
   const isOwner = trip.created_by === user.id;
 
-  const { data: media } = await supabase
+  const { data: media, error: mediaErr } = await supabase
     .from("media")
-    .select("id, storage_path, kind, user_id, created_at, profiles(display_name)")
+    .select("id, storage_path, kind, user_id, created_at")
     .eq("trip_id", trip.id)
+    .eq("is_moment", false)
     .order("created_at", { ascending: false });
+  if (mediaErr) console.error("media query error", mediaErr);
+
+  const userIds = Array.from(new Set((media ?? []).map((m: any) => m.user_id)));
+  const { data: profs } = userIds.length
+    ? await supabase.from("profiles").select("id, display_name").in("id", userIds)
+    : { data: [] as any[] };
+  const nameById = new Map((profs ?? []).map((p: any) => [p.id, p.display_name]));
 
   const items = await Promise.all(
     (media ?? []).map(async (m: any) => {
@@ -30,7 +38,7 @@ export default async function TripPage({ params }: { params: { id: string } }) {
         url: data?.signedUrl ?? "",
         created_at: m.created_at,
         user_id: m.user_id,
-        uploader: m.profiles?.display_name ?? "Ukjent",
+        uploader: nameById.get(m.user_id) ?? "Ukjent",
       };
     })
   );

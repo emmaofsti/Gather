@@ -11,12 +11,19 @@ export default async function MomentsPage({ params }: { params: { id: string } }
   const { data: trip } = await supabase.from("trips").select("*").eq("id", params.id).maybeSingle();
   if (!trip) notFound();
 
-  const { data: moments } = await supabase
+  const { data: moments, error: momErr } = await supabase
     .from("media")
-    .select("id, storage_path, kind, user_id, was_late, created_at, profiles(display_name)")
+    .select("id, storage_path, kind, user_id, was_late, created_at")
     .eq("trip_id", trip.id)
     .eq("is_moment", true)
     .order("created_at", { ascending: false });
+  if (momErr) console.error("moments query error", momErr);
+
+  const userIds = Array.from(new Set((moments ?? []).map((m: any) => m.user_id)));
+  const { data: profs } = userIds.length
+    ? await supabase.from("profiles").select("id, display_name").in("id", userIds)
+    : { data: [] as any[] };
+  const nameById = new Map((profs ?? []).map((p: any) => [p.id, p.display_name]));
 
   const items = await Promise.all(
     (moments ?? []).map(async (m: any) => {
@@ -29,7 +36,7 @@ export default async function MomentsPage({ params }: { params: { id: string } }
         created_at: m.created_at,
         user_id: m.user_id,
         storage_path: m.storage_path,
-        uploader: m.profiles?.display_name ?? "Ukjent",
+        uploader: nameById.get(m.user_id) ?? "Ukjent",
       };
     })
   );
