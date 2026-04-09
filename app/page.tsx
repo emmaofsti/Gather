@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { requireUser } from "@/lib/auth";
+import { InstallBanner } from "@/components/install-banner";
 
 export const dynamic = "force-dynamic";
 
@@ -38,6 +39,10 @@ export default async function Home() {
         <p className="text-sm text-muted">hei {profile.display_name?.toLowerCase()} ✿</p>
         <h1 className="font-display text-5xl italic leading-none">Mine Gatherings</h1>
       </header>
+
+      <div className="mb-6">
+        <InstallBanner />
+      </div>
 
       {showMomentBanner && (
         <Link
