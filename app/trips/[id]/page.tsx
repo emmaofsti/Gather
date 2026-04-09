@@ -16,14 +16,21 @@ export default async function TripPage({ params }: { params: { id: string } }) {
 
   const { data: media } = await supabase
     .from("media")
-    .select("id, storage_path, kind, user_id, created_at")
+    .select("id, storage_path, kind, user_id, created_at, profiles(display_name)")
     .eq("trip_id", trip.id)
     .order("created_at", { ascending: false });
 
   const items = await Promise.all(
-    (media ?? []).map(async (m) => {
+    (media ?? []).map(async (m: any) => {
       const { data } = await supabase.storage.from("trip-media").createSignedUrl(m.storage_path, 60 * 60);
-      return { ...m, url: data?.signedUrl ?? "" };
+      return {
+        id: m.id,
+        storage_path: m.storage_path,
+        kind: m.kind,
+        url: data?.signedUrl ?? "",
+        created_at: m.created_at,
+        uploader: m.profiles?.display_name ?? "Ukjent",
+      };
     })
   );
 

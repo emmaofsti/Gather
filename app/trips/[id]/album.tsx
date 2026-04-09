@@ -2,8 +2,16 @@
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { Lightbox } from "@/components/lightbox";
 
-type Item = { id: string; storage_path: string; kind: string; url: string };
+type Item = {
+  id: string;
+  storage_path: string;
+  kind: string;
+  url: string;
+  created_at?: string;
+  uploader?: string;
+};
 
 export function Album({ tripId, initial }: { tripId: string; initial: Item[] }) {
   const [items] = useState(initial);
@@ -76,16 +84,7 @@ export function Album({ tripId, initial }: { tripId: string; initial: Item[] }) 
       )}
 
       {open !== null && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 p-4"
-          onClick={() => setOpen(null)}
-        >
-          {items[open].kind === "video" ? (
-            <video src={items[open].url} controls className="max-h-full max-w-full rounded-2xl" />
-          ) : (
-            <img src={items[open].url} className="max-h-full max-w-full rounded-2xl" alt="" />
-          )}
-        </div>
+        <Lightbox items={items} index={open} onClose={() => setOpen(null)} />
       )}
     </>
   );

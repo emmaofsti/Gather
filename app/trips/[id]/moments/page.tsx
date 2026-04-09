@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth";
+import { MomentsGrid } from "./moments-grid";
 
 export default async function MomentsPage({ params }: { params: { id: string } }) {
   const { supabase } = await requireUser();
@@ -9,15 +10,22 @@ export default async function MomentsPage({ params }: { params: { id: string } }
 
   const { data: moments } = await supabase
     .from("media")
-    .select("id, storage_path, kind, user_id, was_late, created_at")
+    .select("id, storage_path, kind, user_id, was_late, created_at, profiles(display_name)")
     .eq("trip_id", trip.id)
     .eq("is_moment", true)
     .order("created_at", { ascending: false });
 
   const items = await Promise.all(
-    (moments ?? []).map(async (m) => {
+    (moments ?? []).map(async (m: any) => {
       const { data } = await supabase.storage.from("trip-media").createSignedUrl(m.storage_path, 60 * 60);
-      return { ...m, url: data?.signedUrl ?? "" };
+      return {
+        id: m.id,
+        url: data?.signedUrl ?? "",
+        kind: m.kind,
+        was_late: m.was_late,
+        created_at: m.created_at,
+        uploader: m.profiles?.display_name ?? "Ukjent",
+      };
     })
   );
 
@@ -52,7 +60,7 @@ export default async function MomentsPage({ params }: { params: { id: string } }
               <div
                 key={m.id}
                 className="relative h-44 w-36 flex-none overflow-hidden rounded-2xl bg-card p-2 shadow-soft"
-                style={{ transform: `rotate(${(i % 2 === 0 ? 1 : -1) * (Math.random() * 2 + 1)}deg)` }}
+                style={{ transform: `rotate(${(i % 2 === 0 ? 1 : -1) * 1.5}deg)` }}
               >
                 <img src={m.url} className="h-full w-full rounded-xl object-cover" alt="" />
                 {m.was_late && (
@@ -65,24 +73,7 @@ export default async function MomentsPage({ params }: { params: { id: string } }
       )}
 
       <h2 className="mb-3 text-xs font-bold uppercase tracking-widest text-muted">Alle moments</h2>
-      {items.length === 0 ? (
-        <div className="rounded-chunk bg-card p-10 text-center shadow-soft">
-          <p className="text-5xl">✨</p>
-          <p className="mt-3 font-semibold">Ingen moments enda</p>
-          <p className="mt-1 text-sm text-muted">Vent på neste runde — eller test fra album-siden</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-3 gap-2">
-          {items.map((m) => (
-            <div key={m.id} className="relative aspect-square overflow-hidden rounded-2xl bg-card shadow-soft">
-              <img src={m.url} className="h-full w-full object-cover" alt="" />
-              {m.was_late && (
-                <span className="absolute bottom-1.5 left-1.5 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-bold text-white">sent</span>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
+      <MomentsGrid items={items} />
     </main>
   );
 }
