@@ -11,9 +11,13 @@ export function CaptureForm({
   round: { id: string; closes_at: string } | null;
 }) {
   const router = useRouter();
-  const inputRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const fallbackRef = useRef<HTMLInputElement>(null);
+
   const [now, setNow] = useState(Date.now());
-  const [uploading, setUploading] = useState(false);
+  const [stage, setStage] = useState<"loading" | "ready" | "capturing" | "uploading" | "error">("loading");
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 500);
@@ -24,74 +28,211 @@ export function CaptureForm({
   const remaining = closesAt ? Math.max(0, Math.floor((closesAt - now) / 1000)) : null;
   const isLate = closesAt ? now > closesAt : false;
 
-  async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploading(true);
+  async function startCamera(facing: "environment" | "user") {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+    }
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: facing }, width: { ideal: 1280 }, height: { ideal: 1280 } },
+      audio: false,
+    });
+    streamRef.current = stream;
+    if (videoRef.current) {
+      videoRef.current.srcObject = stream;
+      await new Promise<void>((res) => {
+        const v = videoRef.current!;
+        if (v.readyState >= 2) return res();
+        v.onloadedmetadata = () => res();
+      });
+      await videoRef.current.play().catch(() => {});
+    }
+  }
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        await startCamera("environment");
+        if (!cancelled) setStage("ready");
+      } catch (e: any) {
+        if (!cancelled) {
+          setErrorMsg(e?.message ?? "Kamera ikke tilgjengelig");
+          setStage("error");
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+      streamRef.current?.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+    };
+  }, []);
+
+  function grabFrame() {
+    const v = videoRef.current!;
+    const w = v.videoWidth;
+    const h = v.videoHeight;
+    const c = document.createElement("canvas");
+    c.width = w;
+    c.height = h;
+    c.getContext("2d")!.drawImage(v, 0, 0, w, h);
+    return c;
+  }
+
+  function roundedRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+
+  function composite(back: HTMLCanvasElement, front: HTMLCanvasElement): Promise<Blob> {
+    const w = back.width;
+    const h = back.height;
+    const out = document.createElement("canvas");
+    out.width = w;
+    out.height = h;
+    const ctx = out.getContext("2d")!;
+    ctx.drawImage(back, 0, 0);
+
+    const boxW = Math.round(w * 0.3);
+    const boxH = Math.round(boxW * (front.height / front.width));
+    const margin = Math.round(w * 0.04);
+    const r = Math.round(boxW * 0.1);
+
+    ctx.save();
+    roundedRect(ctx, margin, margin, boxW, boxH, r);
+    ctx.clip();
+    // mirror selfie
+    ctx.translate(margin + boxW, margin);
+    ctx.scale(-1, 1);
+    ctx.drawImage(front, 0, 0, boxW, boxH);
+    ctx.restore();
+
+    ctx.strokeStyle = "white";
+    ctx.lineWidth = Math.max(3, Math.round(w * 0.005));
+    roundedRect(ctx, margin, margin, boxW, boxH, r);
+    ctx.stroke();
+
+    return new Promise((resolve, reject) => {
+      out.toBlob((b) => (b ? resolve(b) : reject(new Error("blob failed"))), "image/jpeg", 0.9);
+    });
+  }
+
+  async function upload(blob: Blob) {
+    setStage("uploading");
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    const ext = file.name.split(".").pop() ?? "jpg";
-    const path = `${tripId}/${user.id}/${crypto.randomUUID()}.${ext}`;
-    const { error: upErr } = await supabase.storage.from("trip-media").upload(path, file, { contentType: file.type });
-    if (upErr) { alert(upErr.message); setUploading(false); return; }
-    await supabase.from("media").insert({
+    if (!user) { setStage("error"); return; }
+    const path = `${tripId}/${user.id}/${crypto.randomUUID()}.jpg`;
+    const { error: upErr } = await supabase.storage.from("trip-media").upload(path, blob, { contentType: "image/jpeg" });
+    if (upErr) { alert(upErr.message); setStage("ready"); return; }
+    const { error: insErr } = await supabase.from("media").insert({
       trip_id: tripId,
       user_id: user.id,
       storage_path: path,
-      kind: file.type.startsWith("video") ? "video" : "photo",
+      kind: "photo",
       is_moment: true,
       moment_round_id: round?.id ?? null,
       was_late: isLate,
       taken_at: new Date().toISOString(),
     });
+    if (insErr) { alert(insErr.message); setStage("ready"); return; }
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    router.refresh();
     router.push(`/trips/${tripId}/moments`);
   }
 
+  async function capture() {
+    if (stage !== "ready") return;
+    setStage("capturing");
+    try {
+      const back = grabFrame();
+      await startCamera("user");
+      await new Promise((r) => setTimeout(r, 250));
+      const front = grabFrame();
+      const blob = await composite(back, front);
+      await upload(blob);
+    } catch (e: any) {
+      alert(e?.message ?? "Noe gikk galt");
+      setStage("ready");
+    }
+  }
+
+  async function onFallbackFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    await upload(file);
+  }
+
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-5">
       {round ? (
-        <div
-          className={`rounded-chunk p-8 text-center shadow-soft ${
-            isLate ? "bg-red-100" : "bg-card"
-          }`}
-        >
+        <div className={`rounded-chunk p-6 text-center shadow-soft ${isLate ? "bg-red-100" : "bg-card"}`}>
           {isLate ? (
             <>
-              <p className="text-5xl">⏰</p>
-              <p className="mt-3 font-display text-3xl italic">For sent</p>
-              <p className="mt-2 text-sm text-muted">Du kan fortsatt ta bildet — det blir markert som "sent".</p>
+              <p className="text-4xl">⏰</p>
+              <p className="mt-2 font-display text-2xl italic">For sent</p>
+              <p className="mt-1 text-xs text-muted">Markeres som "sent"</p>
             </>
           ) : (
             <>
               <p className="text-xs font-bold uppercase tracking-widest text-muted">Tid igjen</p>
-              <p className="mt-1 font-display text-7xl italic tabular-nums leading-none">
+              <p className="mt-1 font-display text-6xl italic tabular-nums leading-none">
                 {String(Math.floor(remaining! / 60))}:{String(remaining! % 60).padStart(2, "0")}
               </p>
-              <p className="mt-3 text-sm">Hva gjør du akkurat nå?</p>
             </>
           )}
         </div>
       ) : (
+        <div className="rounded-chunk bg-card p-4 text-center text-sm text-muted shadow-soft">
+          Ingen aktiv runde — fritt moment 🌿
+        </div>
+      )}
+
+      {stage === "error" ? (
         <div className="rounded-chunk bg-card p-6 text-center shadow-soft">
-          <p className="text-sm text-muted">Ingen aktiv runde — du tar et fritt moment-bilde 🌿</p>
+          <p className="text-sm text-muted">Kamera ikke tilgjengelig{errorMsg ? `: ${errorMsg}` : ""}</p>
+          <button
+            onClick={() => fallbackRef.current?.click()}
+            className="mt-4 w-full rounded-chunk bg-accent py-5 text-lg font-bold text-white shadow-pop"
+          >
+            📷 Velg fra rull
+          </button>
+        </div>
+      ) : (
+        <div className="relative aspect-square overflow-hidden rounded-chunk bg-black shadow-pop">
+          <video ref={videoRef} playsInline muted className="absolute inset-0 h-full w-full object-cover" />
+          {stage === "loading" && (
+            <div className="absolute inset-0 flex items-center justify-center text-white">Starter kamera…</div>
+          )}
+          {(stage === "capturing" || stage === "uploading") && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/40 text-white font-bold">
+              {stage === "capturing" ? "Tar bilde…" : "Laster opp…"}
+            </div>
+          )}
         </div>
       )}
 
       <button
-        onClick={() => inputRef.current?.click()}
-        disabled={uploading}
-        className="rounded-chunk bg-accent py-8 text-2xl font-bold text-white shadow-pop transition active:scale-95 disabled:opacity-50"
+        onClick={capture}
+        disabled={stage !== "ready"}
+        className="rounded-chunk bg-accent py-7 text-xl font-bold text-white shadow-pop transition active:scale-95 disabled:opacity-50"
       >
-        {uploading ? "Laster opp…" : "📷 Ta bilde"}
+        {stage === "uploading" ? "Laster opp…" : stage === "capturing" ? "Snap…" : "📸 Ta moment"}
       </button>
+
       <input
-        ref={inputRef}
+        ref={fallbackRef}
         type="file"
         accept="image/*"
         capture="environment"
         className="hidden"
-        onChange={onFile}
+        onChange={onFallbackFile}
       />
     </div>
   );
