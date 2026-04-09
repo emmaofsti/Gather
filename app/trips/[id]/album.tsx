@@ -12,6 +12,7 @@ type Item = {
   created_at?: string;
   uploader?: string;
   user_id?: string;
+  is_peak?: boolean;
 };
 
 export function Album({ tripId, initial, currentUserId }: { tripId: string; initial: Item[]; currentUserId?: string }) {
@@ -57,6 +58,22 @@ export function Album({ tripId, initial, currentUserId }: { tripId: string; init
     router.refresh();
   }
 
+  async function handleTogglePeak(item: LightboxItem) {
+    const supabase = createClient();
+    const next = !item.is_peak;
+    if (next) {
+      const currentPeaks = items.filter((x) => x.is_peak).length;
+      if (currentPeaks >= 5) {
+        alert("Du kan kun ha 5 peak-bilder. Fjern ett først.");
+        return;
+      }
+    }
+    const { error } = await supabase.from("media").update({ is_peak: next }).eq("id", item.id);
+    if (error) { alert(error.message); return; }
+    setItems((prev) => prev.map((x) => (x.id === item.id ? { ...x, is_peak: next } : x)));
+    router.refresh();
+  }
+
   return (
     <>
       <button
@@ -89,11 +106,16 @@ export function Album({ tripId, initial, currentUserId }: { tripId: string; init
               onClick={() => setOpen(i)}
               className="aspect-square overflow-hidden rounded-2xl bg-card shadow-soft transition active:scale-95"
             >
-              {m.kind === "video" ? (
-                <video src={m.url} className="h-full w-full object-cover" />
-              ) : (
-                <img src={m.url} className="h-full w-full object-cover" alt="" />
-              )}
+              <div className="relative h-full w-full">
+                {m.kind === "video" ? (
+                  <video src={m.url} className="h-full w-full object-cover" />
+                ) : (
+                  <img src={m.url} className="h-full w-full object-cover" alt="" />
+                )}
+                {m.is_peak && (
+                  <span className="absolute right-1.5 top-1.5 rounded-full bg-black/70 px-1.5 text-xs text-yellow-300">★</span>
+                )}
+              </div>
             </button>
           ))}
         </div>
@@ -106,6 +128,7 @@ export function Album({ tripId, initial, currentUserId }: { tripId: string; init
           onClose={() => setOpen(null)}
           currentUserId={currentUserId}
           onDelete={handleDelete}
+          onTogglePeak={handleTogglePeak}
         />
       )}
     </>

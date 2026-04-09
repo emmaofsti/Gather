@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth";
-import { Album } from "./album";
+import { Board } from "./board";
 import { PushOptIn } from "@/components/push-optin";
 import { TestMomentButton } from "@/components/test-moment-button";
 import { ShareTrip } from "@/components/share-trip";
 import { CoverEdit } from "@/components/cover-edit";
+
+export const dynamic = "force-dynamic";
 
 export default async function TripPage({ params }: { params: { id: string } }) {
   const { supabase, user } = await requireUser();
@@ -14,32 +16,29 @@ export default async function TripPage({ params }: { params: { id: string } }) {
 
   const isOwner = trip.created_by === user.id;
 
-  const { data: media, error: mediaErr } = await supabase
-    .from("media")
-    .select("id, storage_path, kind, user_id, created_at")
+  const { data: board } = await supabase
+    .from("trip_boards")
+    .select("notes")
     .eq("trip_id", trip.id)
-    .eq("is_moment", false)
+    .maybeSingle();
+
+  const { data: links } = await supabase
+    .from("trip_links")
+    .select("id, title, url")
+    .eq("trip_id", trip.id)
     .order("created_at", { ascending: false });
-  if (mediaErr) console.error("media query error", mediaErr);
 
-  const userIds = Array.from(new Set((media ?? []).map((m: any) => m.user_id)));
-  const { data: profs } = userIds.length
-    ? await supabase.from("profiles").select("id, display_name").in("id", userIds)
-    : { data: [] as any[] };
-  const nameById = new Map((profs ?? []).map((p: any) => [p.id, p.display_name]));
+  const { data: peaks } = await supabase
+    .from("media")
+    .select("id, storage_path, kind")
+    .eq("trip_id", trip.id)
+    .eq("is_peak", true)
+    .limit(5);
 
-  const items = await Promise.all(
-    (media ?? []).map(async (m: any) => {
+  const peakItems = await Promise.all(
+    (peaks ?? []).map(async (m: any) => {
       const { data } = await supabase.storage.from("trip-media").createSignedUrl(m.storage_path, 60 * 60);
-      return {
-        id: m.id,
-        storage_path: m.storage_path,
-        kind: m.kind,
-        url: data?.signedUrl ?? "",
-        created_at: m.created_at,
-        user_id: m.user_id,
-        uploader: nameById.get(m.user_id) ?? "Ukjent",
-      };
+      return { id: m.id, url: data?.signedUrl ?? "", kind: m.kind };
     })
   );
 
@@ -80,23 +79,58 @@ export default async function TripPage({ params }: { params: { id: string } }) {
         </div>
       )}
 
-      <div className="mt-6 flex gap-2 px-5">
-        <span className="rounded-full bg-fg px-5 py-2 text-sm font-bold text-bg">Album</span>
-        <Link href={`/trips/${trip.id}/moments`} className="rounded-full border border-border bg-card px-5 py-2 text-sm font-semibold">
-          Moments
+      <div className="mt-6 grid grid-cols-3 gap-2 px-5">
+        <Link
+          href={`/trips/${trip.id}/album`}
+          className="rounded-chunk bg-card p-4 text-center shadow-soft active:scale-95"
+        >
+          <p className="text-2xl">🖼️</p>
+          <p className="mt-1 text-xs font-bold">Album</p>
         </Link>
-        <Link href={`/trips/${trip.id}/capture`} className="ml-auto rounded-full border border-border bg-card px-4 py-2 text-sm font-semibold">
-          📷
+        <Link
+          href={`/trips/${trip.id}/moments`}
+          className="rounded-chunk bg-card p-4 text-center shadow-soft active:scale-95"
+        >
+          <p className="text-2xl">✦</p>
+          <p className="mt-1 text-xs font-bold">Moments</p>
+        </Link>
+        <Link
+          href={`/trips/${trip.id}/capture`}
+          className="rounded-chunk bg-accent p-4 text-center text-white shadow-soft active:scale-95"
+        >
+          <p className="text-2xl">📷</p>
+          <p className="mt-1 text-xs font-bold">Ta moment</p>
         </Link>
       </div>
 
-      <div className="mt-4 px-5">
+      <div className="mt-5 px-5">
         <PushOptIn />
         <TestMomentButton tripId={trip.id} />
       </div>
 
-      <div className="mt-2 px-5">
-        <Album tripId={trip.id} initial={items} currentUserId={user.id} />
+      {peakItems.length > 0 && (
+        <div className="mt-2 px-5">
+          <p className="mb-2 text-xs font-bold uppercase tracking-widest text-muted">★ Peaks</p>
+          <div className="grid grid-cols-5 gap-2">
+            {peakItems.map((m) => (
+              <div key={m.id} className="aspect-square overflow-hidden rounded-2xl bg-card shadow-soft">
+                {m.kind === "video" ? (
+                  <video src={m.url} className="h-full w-full object-cover" />
+                ) : (
+                  <img src={m.url} className="h-full w-full object-cover" alt="" />
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="mt-5 px-5">
+        <Board
+          tripId={trip.id}
+          initialNotes={board?.notes ?? ""}
+          initialLinks={(links ?? []) as any}
+        />
       </div>
     </main>
   );

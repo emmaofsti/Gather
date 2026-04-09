@@ -13,6 +13,7 @@ export type LightboxItem = {
   secondaryUrl?: string | null;
   secondary_storage_path?: string | null;
   was_late?: boolean;
+  is_peak?: boolean;
 };
 
 export function Lightbox({
@@ -21,12 +22,14 @@ export function Lightbox({
   onClose,
   currentUserId,
   onDelete,
+  onTogglePeak,
 }: {
   items: LightboxItem[];
   index: number;
   onClose: () => void;
   currentUserId?: string;
   onDelete?: (item: LightboxItem) => Promise<void> | void;
+  onTogglePeak?: (item: LightboxItem) => Promise<void> | void;
 }) {
   const [i, setI] = useState(index);
   const [deleting, setDeleting] = useState(false);
@@ -96,17 +99,25 @@ export function Lightbox({
         <span className="text-xs opacity-70">
           {i + 1} / {items.length}
         </span>
-        {canDelete ? (
-          <button
-            onClick={handleDelete}
-            disabled={deleting}
-            className="rounded-full bg-red-500/80 px-3 py-1.5 text-sm font-semibold disabled:opacity-50"
-          >
-            {deleting ? "Sletter…" : "Slett"}
-          </button>
-        ) : (
-          <span className="w-12" />
-        )}
+        <div className="flex items-center gap-2">
+          {onTogglePeak && (
+            <button
+              onClick={() => onTogglePeak(item)}
+              className="rounded-full bg-white/10 px-3 py-1.5 text-sm font-semibold"
+            >
+              {item.is_peak ? "★ Peak" : "☆ Pin"}
+            </button>
+          )}
+          {canDelete && (
+            <button
+              onClick={handleDelete}
+              disabled={deleting}
+              className="rounded-full bg-red-500/80 px-3 py-1.5 text-sm font-semibold disabled:opacity-50"
+            >
+              {deleting ? "Sletter…" : "Slett"}
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="relative flex flex-1 items-center justify-center px-4">
