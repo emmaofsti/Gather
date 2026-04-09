@@ -61,16 +61,6 @@ export default async function MomentsPage({ params }: { params: { id: string } }
       <Link href={`/trips/${trip.id}`} className="text-sm text-muted">← {trip.name}</Link>
       <h1 className="my-3 font-display text-5xl italic leading-none">Moments</h1>
 
-      <div className="mb-6 mt-6 flex gap-2">
-        <Link href={`/trips/${trip.id}`} className="rounded-full border border-border bg-card px-5 py-2 text-sm font-semibold">
-          Album
-        </Link>
-        <span className="rounded-full bg-fg px-5 py-2 text-sm font-bold text-bg">Moments</span>
-        <Link href={`/trips/${trip.id}/capture`} className="ml-auto rounded-full border border-border bg-card px-4 py-2 text-sm font-semibold">
-          📷
-        </Link>
-      </div>
-
       {yesterdays.length > 0 && (
         <section className="mb-8">
           <h2 className="mb-3 text-xs font-bold uppercase tracking-widest text-muted">Gårsdagens moments</h2>

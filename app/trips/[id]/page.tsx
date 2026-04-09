@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { Board } from "./board";
+import { PeaksGrid } from "./peaks-grid";
 import { PushOptIn } from "@/components/push-optin";
 import { ShareTrip } from "@/components/share-trip";
 import { CoverEdit } from "@/components/cover-edit";
@@ -27,19 +28,20 @@ export default async function TripPage({ params }: { params: { id: string } }) {
     .eq("trip_id", trip.id)
     .order("created_at", { ascending: false });
 
-  const { data: peaks } = await supabase
+  const { data: allMedia } = await supabase
     .from("media")
-    .select("id, storage_path, kind")
+    .select("id, storage_path, kind, is_peak, created_at")
     .eq("trip_id", trip.id)
-    .eq("is_peak", true)
-    .limit(5);
+    .eq("is_moment", false)
+    .order("created_at", { ascending: false });
 
-  const peakItems = await Promise.all(
-    (peaks ?? []).map(async (m: any) => {
+  const allItems = await Promise.all(
+    (allMedia ?? []).map(async (m: any) => {
       const { data } = await supabase.storage.from("trip-media").createSignedUrl(m.storage_path, 60 * 60);
-      return { id: m.id, url: data?.signedUrl ?? "", kind: m.kind };
+      return { id: m.id, url: data?.signedUrl ?? "", kind: m.kind, is_peak: m.is_peak, created_at: m.created_at };
     })
   );
+  const peakItems = allItems.filter((m: any) => m.is_peak).slice(0, 5);
 
   const { data: members } = await supabase
     .from("trip_members")
@@ -109,17 +111,7 @@ export default async function TripPage({ params }: { params: { id: string } }) {
       {peakItems.length > 0 && (
         <div className="mt-2 px-5">
           <p className="mb-2 text-xs font-bold uppercase tracking-widest text-muted">★ Peaks</p>
-          <div className="grid grid-cols-5 gap-2">
-            {peakItems.map((m) => (
-              <div key={m.id} className="aspect-square overflow-hidden rounded-2xl bg-card shadow-soft">
-                {m.kind === "video" ? (
-                  <video src={m.url} className="h-full w-full object-cover" />
-                ) : (
-                  <img src={m.url} className="h-full w-full object-cover" alt="" />
-                )}
-              </div>
-            ))}
-          </div>
+          <PeaksGrid peaks={peakItems as any} all={allItems as any} />
         </div>
       )}
 
