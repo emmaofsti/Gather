@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export default async function JoinPage({ params }: { params: { code: string } }) {
   const supabase = createClient();
@@ -8,7 +9,9 @@ export default async function JoinPage({ params }: { params: { code: string } })
     redirect(`/login?next=${encodeURIComponent(`/join/${params.code}`)}`);
   }
 
-  const { data: trip } = await supabase
+  // Use admin client so RLS doesn't block lookup for non-members
+  const admin = createAdminClient();
+  const { data: trip } = await admin
     .from("trips")
     .select("id, name")
     .eq("invite_code", params.code)
@@ -23,6 +26,6 @@ export default async function JoinPage({ params }: { params: { code: string } })
     );
   }
 
-  await supabase.from("trip_members").upsert({ trip_id: trip.id, user_id: user!.id });
+  await admin.from("trip_members").upsert({ trip_id: trip.id, user_id: user!.id });
   redirect(`/trips/${trip.id}`);
 }
