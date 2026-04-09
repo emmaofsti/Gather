@@ -1,0 +1,36 @@
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { requireUser } from "@/lib/auth";
+import { CaptureForm } from "./capture-form";
+
+export default async function CapturePage({
+  params,
+  searchParams,
+}: {
+  params: { id: string };
+  searchParams: { round?: string };
+}) {
+  const { supabase } = await requireUser();
+  const { data: trip } = await supabase.from("trips").select("id, name").eq("id", params.id).maybeSingle();
+  if (!trip) notFound();
+
+  let round: { id: string; closes_at: string } | null = null;
+  if (searchParams.round) {
+    const { data } = await supabase
+      .from("moment_rounds")
+      .select("id, closes_at")
+      .eq("id", searchParams.round)
+      .maybeSingle();
+    round = data ?? null;
+  }
+
+  return (
+    <main className="px-5 py-8">
+      <Link href={`/trips/${trip.id}`} className="text-sm text-muted">← {trip.name}</Link>
+      <h1 className="my-3 font-display text-5xl italic leading-none">Moment ✦</h1>
+      <div className="mt-6">
+        <CaptureForm tripId={trip.id} round={round} />
+      </div>
+    </main>
+  );
+}

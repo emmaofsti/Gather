@@ -1,0 +1,37 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600;700;800&display=swap');
+
+:root {
+  color-scheme: light;
+}
+
+html, body {
+  background: #FBF7F0;
+  color: #1A1612;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: "ss01", "cv11";
+}
+
+* { -webkit-tap-highlight-color: transparent; }
+
+/* Subtle paper texture on bg */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background-image: radial-gradient(circle at 20% 10%, rgba(255, 90, 60, 0.04), transparent 40%),
+                    radial-gradient(circle at 80% 90%, rgba(124, 158, 138, 0.04), transparent 40%);
+  pointer-events: none;
+  z-index: -1;
+}
+
+input[type="date"] {
+  color-scheme: light;
+}
