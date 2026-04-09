@@ -6,6 +6,7 @@ import { PeaksGrid } from "./peaks-grid";
 import { PushOptIn } from "@/components/push-optin";
 import { ShareTrip } from "@/components/share-trip";
 import { CoverEdit } from "@/components/cover-edit";
+import { Album } from "./album";
 
 export const dynamic = "force-dynamic";
 
@@ -82,13 +83,6 @@ export default async function TripPage({ params }: { params: { id: string } }) {
 
       <div className="mt-5 flex gap-2 px-5">
         <Link
-          href={`/trips/${trip.id}/album`}
-          className="flex flex-1 items-center justify-center gap-2 rounded-full bg-card px-4 py-2.5 text-sm font-semibold shadow-soft active:scale-95"
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="9" cy="9" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
-          Album
-        </Link>
-        <Link
           href={`/trips/${trip.id}/moments`}
           className="flex flex-1 items-center justify-center gap-2 rounded-full bg-card px-4 py-2.5 text-sm font-semibold shadow-soft active:scale-95"
         >
@@ -121,6 +115,11 @@ export default async function TripPage({ params }: { params: { id: string } }) {
           initialNotes={board?.notes ?? ""}
           initialLinks={(links ?? []) as any}
         />
+      </div>
+
+      <div className="mt-5 px-5">
+        <p className="mb-2 text-xs font-bold uppercase tracking-widest text-muted">Album</p>
+        <Album tripId={trip.id} initial={allItems as any} currentUserId={user.id} cropped />
       </div>
     </main>
   );

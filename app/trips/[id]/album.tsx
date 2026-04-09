@@ -15,7 +15,7 @@ type Item = {
   is_peak?: boolean;
 };
 
-export function Album({ tripId, initial, currentUserId }: { tripId: string; initial: Item[]; currentUserId?: string }) {
+export function Album({ tripId, initial, currentUserId, cropped }: { tripId: string; initial: Item[]; currentUserId?: string; cropped?: boolean }) {
   const [items, setItems] = useState(initial);
   const ordered = useMemo(
     () => [...items].sort((a, b) => Number(!!b.is_peak) - Number(!!a.is_peak)),
@@ -106,7 +106,13 @@ export function Album({ tripId, initial, currentUserId }: { tripId: string; init
                 className="relative block w-full overflow-hidden rounded-2xl bg-card shadow-soft transition active:scale-95"
                 style={{ breakInside: "avoid" }}
               >
-                {m.kind === "video" ? (
+                {cropped ? (
+                  m.kind === "video" ? (
+                    <video src={m.url} className="aspect-[3/4] w-full object-cover" style={{ objectPosition: "center 28%" }} />
+                  ) : (
+                    <img src={m.url} className="aspect-[3/4] w-full object-cover" style={{ objectPosition: "center 28%" }} alt="" />
+                  )
+                ) : m.kind === "video" ? (
                   <video src={m.url} className="h-auto w-full" />
                 ) : (
                   <img src={m.url} className="h-auto w-full" alt="" />
