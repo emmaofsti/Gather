@@ -1,8 +1,9 @@
 "use client";
-import { useMemo, useState, useRef } from "react";
+import { useMemo, useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Lightbox, type LightboxItem } from "@/components/lightbox";
+import { CropModal } from "@/components/crop-modal";
 
 type Item = {
   id: string;
@@ -23,29 +24,55 @@ export function Album({ tripId, initial, currentUserId, cropped }: { tripId: str
   );
   const [uploading, setUploading] = useState(false);
   const [open, setOpen] = useState<number | null>(null);
+  const [queue, setQueue] = useState<File[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
-  async function onFiles(files: FileList | null) {
+  function onFiles(files: FileList | null) {
     if (!files || files.length === 0) return;
-    setUploading(true);
+    setQueue(Array.from(files));
+  }
+
+  async function uploadBlob(blob: Blob, kind: "photo" | "video", ext: string) {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-    for (const file of Array.from(files)) {
-      const ext = file.name.split(".").pop() ?? "jpg";
-      const path = `${tripId}/${user.id}/${crypto.randomUUID()}.${ext}`;
-      const { error: upErr } = await supabase.storage.from("trip-media").upload(path, file, { contentType: file.type });
-      if (upErr) { alert(upErr.message); continue; }
-      const kind = file.type.startsWith("video") ? "video" : "photo";
-      await supabase.from("media").insert({
-        trip_id: tripId, user_id: user.id, storage_path: path, kind,
-        taken_at: new Date().toISOString(),
-      });
-    }
+    const path = `${tripId}/${user.id}/${crypto.randomUUID()}.${ext}`;
+    const { error: upErr } = await supabase.storage.from("trip-media").upload(path, blob, { contentType: blob.type });
+    if (upErr) { alert(upErr.message); return; }
+    await supabase.from("media").insert({
+      trip_id: tripId, user_id: user.id, storage_path: path, kind,
+      taken_at: new Date().toISOString(),
+    });
+  }
+
+  async function handleCropDone(blob: Blob) {
+    setUploading(true);
+    await uploadBlob(blob, "photo", "jpg");
+    setQueue((q) => q.slice(1));
     setUploading(false);
     router.refresh();
   }
+
+  async function handleCropCancel() {
+    setQueue((q) => q.slice(1));
+  }
+
+  // Auto-handle videos in queue (no crop)
+  useEffect(() => {
+    const first = queue[0];
+    if (!first) return;
+    if (first.type.startsWith("video")) {
+      (async () => {
+        setUploading(true);
+        const ext = first.name.split(".").pop() ?? "mp4";
+        await uploadBlob(first, "video", ext);
+        setQueue((q) => q.slice(1));
+        setUploading(false);
+        router.refresh();
+      })();
+    }
+  }, [queue]);
 
   async function handleDelete(item: LightboxItem) {
     const supabase = createClient();
@@ -100,7 +127,7 @@ export function Album({ tripId, initial, currentUserId, cropped }: { tripId: str
           <p className="mt-1 text-sm text-muted">Last opp det første for å starte minnealbumet</p>
         </div>
       ) : (
-        <div className="columns-2 gap-2 sm:columns-3 [&>*]:mb-2">
+        <div className="columns-2 gap-1 sm:columns-3 [&>*]:mb-1">
           {ordered.map((m) => {
             const idx = ordered.findIndex((x) => x.id === m.id);
             return (
@@ -131,6 +158,10 @@ export function Album({ tripId, initial, currentUserId, cropped }: { tripId: str
       )}
 
       {cropped && uploadBtn}
+
+      {queue[0] && !queue[0].type.startsWith("video") && (
+        <CropModal file={queue[0]} onCancel={handleCropCancel} onDone={handleCropDone} />
+      )}
 
       {open !== null && (
         <Lightbox
