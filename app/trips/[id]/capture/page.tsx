@@ -26,7 +26,17 @@ export default async function CapturePage({
 
   return (
     <main className="px-5 py-8">
-      <Link href={`/trips/${trip.id}`} className="text-sm text-muted">← {trip.name}</Link>
+      <div className="flex items-center justify-between">
+        <Link href={`/trips/${trip.id}`} className="text-sm text-muted">← {trip.name}</Link>
+        {round ? (
+          <Link
+            href={`/api/skip-round?round=${round.id}&trip=${trip.id}`}
+            className="rounded-full border border-border bg-card px-3 py-1.5 text-sm font-semibold text-muted"
+          >
+            ✕ Hopp over
+          </Link>
+        ) : null}
+      </div>
       <h1 className="my-3 font-display text-5xl italic leading-none">Moment ✦</h1>
       <div className="mt-6">
         <CaptureForm tripId={trip.id} round={round} />

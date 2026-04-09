@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import { requireUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
@@ -9,6 +10,9 @@ export default async function Home() {
   const today = new Date().toISOString().slice(0, 10);
 
   // If user has an active (unexpired) moment round, jump straight to capture
+  const skipped = new Set(
+    (cookies().get("skipped_rounds")?.value ?? "").split(",").filter(Boolean)
+  );
   const { data: activeRound } = await supabase
     .from("moment_rounds")
     .select("id, trip_id, closes_at")
@@ -17,7 +21,7 @@ export default async function Home() {
     .order("triggered_at", { ascending: false })
     .limit(1)
     .maybeSingle();
-  if (activeRound) {
+  if (activeRound && !skipped.has(activeRound.id)) {
     redirect(`/trips/${activeRound.trip_id}/capture?round=${activeRound.id}`);
   }
 
