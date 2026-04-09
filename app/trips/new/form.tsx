@@ -100,7 +100,7 @@ export function NewTripForm() {
       </div>
       {err && <p className="text-sm text-red-500">{err}</p>}
       <button disabled={busy} className="mt-2 rounded-chunk bg-fg py-5 text-lg font-bold text-bg shadow-soft disabled:opacity-50">
-        {busy ? "Oppretter…" : "Opprett tur ✦"}
+        {busy ? "Oppretter…" : "Opprett gathering ✦"}
       </button>
     </form>
   );

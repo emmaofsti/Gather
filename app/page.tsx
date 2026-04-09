@@ -30,28 +30,32 @@ export default async function Home() {
     .select("id, name, start_date, end_date, cover_url")
     .order("start_date", { ascending: false });
 
-  const active = (trips ?? []).filter((t) => !t.end_date || t.end_date >= today);
+  const upcoming = (trips ?? []).filter((t) => t.start_date && t.start_date > today);
+  const active = (trips ?? []).filter((t) =>
+    (!t.start_date || t.start_date <= today) && (!t.end_date || t.end_date >= today)
+  );
   const past = (trips ?? []).filter((t) => t.end_date && t.end_date < today);
 
   return (
     <main className="px-5 py-8">
       <header className="mb-8">
         <p className="text-sm text-muted">hei {profile.display_name?.toLowerCase()} ✿</p>
-        <h1 className="font-display text-5xl italic leading-none">Mine turer</h1>
+        <h1 className="font-display text-5xl italic leading-none">Mine Gatherings</h1>
       </header>
 
       {trips?.length === 0 && (
         <div className="rounded-chunk bg-card p-10 text-center shadow-soft">
           <p className="text-5xl">🌅</p>
-          <p className="mt-3 font-semibold">Ingen turer enda</p>
+          <p className="mt-3 font-semibold">Ingen gatherings enda</p>
           <p className="mt-1 text-sm text-muted">Lag din første og inviter gjengen</p>
           <Link href="/trips/new" className="mt-5 inline-block rounded-full bg-fg px-6 py-3 text-sm font-bold text-bg">
-            Lag tur
+            Lag gathering
           </Link>
         </div>
       )}
 
       {active.length > 0 && <Section title="Pågående" trips={active} accent />}
+      {upcoming.length > 0 && <Section title="Kommende" trips={upcoming} />}
       {past.length > 0 && <Section title="Tidligere" trips={past} />}
     </main>
   );

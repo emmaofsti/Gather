@@ -57,7 +57,7 @@ export default async function TripPage({ params }: { params: { id: string } }) {
             <div className="absolute inset-0 bg-gradient-to-t from-bg via-bg/10 to-transparent" />
             <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-transparent" />
             <Link href="/" className="absolute left-4 top-4 rounded-full border border-white/30 bg-black/40 px-3 py-1.5 text-sm font-semibold text-white backdrop-blur">
-              ← Turer
+              ← Gatherings
             </Link>
             <div className="absolute right-4 top-4">
               <ShareTrip code={trip.invite_code} name={trip.name} />
@@ -71,7 +71,7 @@ export default async function TripPage({ params }: { params: { id: string } }) {
       ) : (
         <div className="px-5 pt-6">
           <div className="flex items-center justify-between">
-            <Link href="/" className="text-sm text-muted">← Mine turer</Link>
+            <Link href="/" className="text-sm text-muted">← Mine Gatherings</Link>
             <ShareTrip code={trip.invite_code} name={trip.name} dark />
           </div>
           <div className="mt-4">

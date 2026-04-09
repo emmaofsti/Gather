@@ -7,7 +7,7 @@ export default async function NewTrip() {
   return (
     <main className="px-5 py-8">
       <Link href="/" className="text-sm text-muted">← Tilbake</Link>
-      <h1 className="mb-6 mt-2 font-display text-5xl italic leading-none">Ny tur</h1>
+      <h1 className="mb-6 mt-2 font-display text-5xl italic leading-none">Ny gathering</h1>
       <NewTripForm />
     </main>
   );
