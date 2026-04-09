@@ -1,9 +1,25 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 
+export const dynamic = "force-dynamic";
+
 export default async function Home() {
-  const { supabase, profile } = await requireUser();
+  const { supabase, user, profile } = await requireUser();
   const today = new Date().toISOString().slice(0, 10);
+
+  // If user has an active (unexpired) moment round, jump straight to capture
+  const { data: activeRound } = await supabase
+    .from("moment_rounds")
+    .select("id, trip_id, closes_at")
+    .eq("user_id", user.id)
+    .gt("closes_at", new Date().toISOString())
+    .order("triggered_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (activeRound) {
+    redirect(`/trips/${activeRound.trip_id}/capture?round=${activeRound.id}`);
+  }
 
   const { data: trips } = await supabase
     .from("trips")
