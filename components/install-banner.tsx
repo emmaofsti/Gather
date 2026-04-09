@@ -5,6 +5,7 @@ export function InstallBanner() {
   const [standalone, setStandalone] = useState(true);
   const [open, setOpen] = useState(false);
   const [platform, setPlatform] = useState<"ios" | "android" | "desktop">("desktop");
+  const [tab, setTab] = useState<"ios" | "android">("ios");
 
   useEffect(() => {
     const isStandalone =
@@ -14,8 +15,8 @@ export function InstallBanner() {
     setStandalone(isStandalone);
 
     const ua = window.navigator.userAgent.toLowerCase();
-    if (/iphone|ipad|ipod/.test(ua)) setPlatform("ios");
-    else if (/android/.test(ua)) setPlatform("android");
+    if (/iphone|ipad|ipod/.test(ua)) { setPlatform("ios"); setTab("ios"); }
+    else if (/android/.test(ua)) { setPlatform("android"); setTab("android"); }
     else setPlatform("desktop");
   }, []);
 
@@ -48,7 +49,24 @@ export function InstallBanner() {
               Da får du Gather som en app — raskere, fullskjerm og med varsler for moments.
             </p>
 
-            {platform === "ios" && (
+            {platform === "desktop" && (
+              <div className="mt-4 flex gap-2">
+                <button
+                  onClick={() => setTab("ios")}
+                  className={`flex-1 rounded-full px-3 py-1.5 text-xs font-bold ${tab === "ios" ? "bg-fg text-bg" : "bg-bg2 text-muted"}`}
+                >
+                  iPhone
+                </button>
+                <button
+                  onClick={() => setTab("android")}
+                  className={`flex-1 rounded-full px-3 py-1.5 text-xs font-bold ${tab === "android" ? "bg-fg text-bg" : "bg-bg2 text-muted"}`}
+                >
+                  Android
+                </button>
+              </div>
+            )}
+
+            {tab === "ios" && (
               <ol className="mt-5 flex flex-col gap-3 text-sm">
                 <Step n={1} text="Åpne denne siden i Safari (Chrome på iPhone støtter dessverre ikke dette)" />
                 <Step n={2}>
@@ -61,7 +79,7 @@ export function InstallBanner() {
               </ol>
             )}
 
-            {platform === "android" && (
+            {tab === "android" && (
               <ol className="mt-5 flex flex-col gap-3 text-sm">
                 <Step n={1} text="Åpne denne siden i Chrome (eller Samsung Internet)" />
                 <Step n={2}>
@@ -74,12 +92,6 @@ export function InstallBanner() {
               </ol>
             )}
 
-            {platform === "desktop" && (
-              <ol className="mt-5 flex flex-col gap-3 text-sm">
-                <Step n={1} text="Gather er laget for mobil ✿" />
-                <Step n={2} text="Åpne lenken på telefonen din og legg den til på hjemskjermen derfra" />
-              </ol>
-            )}
 
             <button
               onClick={() => setOpen(false)}
