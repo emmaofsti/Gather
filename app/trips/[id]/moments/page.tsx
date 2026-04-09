@@ -13,7 +13,7 @@ export default async function MomentsPage({ params }: { params: { id: string } }
 
   const { data: moments, error: momErr } = await supabase
     .from("media")
-    .select("id, storage_path, kind, user_id, was_late, created_at")
+    .select("id, storage_path, secondary_storage_path, kind, user_id, was_late, created_at")
     .eq("trip_id", trip.id)
     .eq("is_moment", true)
     .order("created_at", { ascending: false });
@@ -28,14 +28,21 @@ export default async function MomentsPage({ params }: { params: { id: string } }
   const items = await Promise.all(
     (moments ?? []).map(async (m: any) => {
       const { data } = await supabase.storage.from("trip-media").createSignedUrl(m.storage_path, 60 * 60);
+      let secondaryUrl: string | null = null;
+      if (m.secondary_storage_path) {
+        const { data: d2 } = await supabase.storage.from("trip-media").createSignedUrl(m.secondary_storage_path, 60 * 60);
+        secondaryUrl = d2?.signedUrl ?? null;
+      }
       return {
         id: m.id,
         url: data?.signedUrl ?? "",
+        secondaryUrl,
         kind: m.kind,
         was_late: m.was_late,
         created_at: m.created_at,
         user_id: m.user_id,
         storage_path: m.storage_path,
+        secondary_storage_path: m.secondary_storage_path,
         uploader: nameById.get(m.user_id) ?? "Ukjent",
       };
     })

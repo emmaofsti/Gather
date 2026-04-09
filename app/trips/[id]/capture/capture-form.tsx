@@ -81,63 +81,35 @@ export function CaptureForm({
     return c;
   }
 
-  function roundedRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
-    ctx.beginPath();
-    ctx.moveTo(x + r, y);
-    ctx.arcTo(x + w, y, x + w, y + h, r);
-    ctx.arcTo(x + w, y + h, x, y + h, r);
-    ctx.arcTo(x, y + h, x, y, r);
-    ctx.arcTo(x, y, x + w, y, r);
-    ctx.closePath();
+  function canvasToBlob(c: HTMLCanvasElement): Promise<Blob> {
+    return new Promise((resolve, reject) =>
+      c.toBlob((b) => (b ? resolve(b) : reject(new Error("blob failed"))), "image/jpeg", 0.9)
+    );
   }
 
-  function composite(back: HTMLCanvasElement, front: HTMLCanvasElement): Promise<Blob> {
-    const w = back.width;
-    const h = back.height;
-    const out = document.createElement("canvas");
-    out.width = w;
-    out.height = h;
-    const ctx = out.getContext("2d")!;
-    ctx.drawImage(back, 0, 0);
-
-    const boxW = Math.round(w * 0.3);
-    const boxH = Math.round(boxW * (front.height / front.width));
-    const margin = Math.round(w * 0.04);
-    const r = Math.round(boxW * 0.1);
-
-    ctx.save();
-    roundedRect(ctx, margin, margin, boxW, boxH, r);
-    ctx.clip();
-    // mirror selfie
-    ctx.translate(margin + boxW, margin);
-    ctx.scale(-1, 1);
-    ctx.drawImage(front, 0, 0, boxW, boxH);
-    ctx.restore();
-
-    ctx.strokeStyle = "white";
-    ctx.lineWidth = Math.max(3, Math.round(w * 0.005));
-    roundedRect(ctx, margin, margin, boxW, boxH, r);
-    ctx.stroke();
-
-    return new Promise((resolve, reject) => {
-      out.toBlob((b) => (b ? resolve(b) : reject(new Error("blob failed"))), "image/jpeg", 0.9);
-    });
-  }
-
-  async function upload(blob: Blob) {
+  async function upload(backBlob: Blob, frontBlob: Blob | null) {
     setStage("uploading");
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setStage("error"); return; }
-    const path = `${tripId}/${user.id}/${crypto.randomUUID()}.jpg`;
-    const { error: upErr } = await supabase.storage.from("trip-media").upload(path, blob, { contentType: "image/jpeg" });
+    const backPath = `${tripId}/${user.id}/${crypto.randomUUID()}.jpg`;
+    const { error: upErr } = await supabase.storage.from("trip-media").upload(backPath, backBlob, { contentType: "image/jpeg" });
     if (upErr) { alert(upErr.message); setStage("ready"); return; }
+
+    let frontPath: string | null = null;
+    if (frontBlob) {
+      frontPath = `${tripId}/${user.id}/${crypto.randomUUID()}.jpg`;
+      const { error: fErr } = await supabase.storage.from("trip-media").upload(frontPath, frontBlob, { contentType: "image/jpeg" });
+      if (fErr) { console.error("front upload failed", fErr); frontPath = null; }
+    }
+
     const { data: inserted, error: insErr } = await supabase
       .from("media")
       .insert({
         trip_id: tripId,
         user_id: user.id,
-        storage_path: path,
+        storage_path: backPath,
+        secondary_storage_path: frontPath,
         kind: "photo",
         is_moment: true,
         moment_round_id: round?.id ?? null,
@@ -169,8 +141,9 @@ export function CaptureForm({
         await new Promise((r) => setTimeout(r, 1000));
       }
       const front = grabFrame();
-      const blob = await composite(back, front);
-      await upload(blob);
+      const backBlob = await canvasToBlob(back);
+      const frontBlob = await canvasToBlob(front);
+      await upload(backBlob, frontBlob);
     } catch (e: any) {
       alert(e?.message ?? "Noe gikk galt");
       setStage("ready");
@@ -180,7 +153,7 @@ export function CaptureForm({
   async function onFallbackFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    await upload(file);
+    await upload(file, null);
   }
 
   return (

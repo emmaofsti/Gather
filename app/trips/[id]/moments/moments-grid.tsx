@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Lightbox, type LightboxItem } from "@/components/lightbox";
+import { DualPhoto } from "@/components/dual-photo";
 
 type Item = LightboxItem & { was_late?: boolean };
 
@@ -15,8 +16,9 @@ export function MomentsGrid({ items: initial, currentUserId }: { items: Item[]; 
     const supabase = createClient();
     const { error } = await supabase.from("media").delete().eq("id", item.id);
     if (error) { alert(error.message); return; }
-    if (item.storage_path) {
-      await supabase.storage.from("trip-media").remove([item.storage_path]);
+    const paths = [item.storage_path, item.secondary_storage_path].filter(Boolean) as string[];
+    if (paths.length) {
+      await supabase.storage.from("trip-media").remove(paths);
     }
     setItems((prev) => prev.filter((x) => x.id !== item.id));
     router.refresh();
@@ -40,7 +42,7 @@ export function MomentsGrid({ items: initial, currentUserId }: { items: Item[]; 
             onClick={() => setOpen(i)}
             className="relative aspect-square overflow-hidden rounded-2xl bg-card shadow-soft transition active:scale-95"
           >
-            <img src={m.url} className="h-full w-full object-cover" alt="" />
+            <DualPhoto main={m.url} secondary={m.secondaryUrl} />
             {m.was_late && (
               <span className="absolute bottom-1.5 left-1.5 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-bold text-white">sent</span>
             )}

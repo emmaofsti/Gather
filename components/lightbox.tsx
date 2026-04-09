@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import { DualPhoto } from "./dual-photo";
 
 export type LightboxItem = {
   id: string;
@@ -9,6 +10,8 @@ export type LightboxItem = {
   created_at?: string;
   user_id?: string;
   storage_path?: string;
+  secondaryUrl?: string | null;
+  secondary_storage_path?: string | null;
 };
 
 export function Lightbox({
@@ -108,6 +111,10 @@ export function Lightbox({
       <div className="relative flex flex-1 items-center justify-center px-4">
         {item.kind === "video" ? (
           <video src={item.url} controls className="max-h-full max-w-full rounded-2xl" />
+        ) : item.secondaryUrl ? (
+          <div className="relative aspect-square max-h-full max-w-full overflow-hidden rounded-2xl">
+            <DualPhoto main={item.url} secondary={item.secondaryUrl} swappable size="large" />
+          </div>
         ) : (
           <img src={item.url} className="max-h-full max-w-full rounded-2xl" alt="" />
         )}
