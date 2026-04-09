@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createAdmin } from "@/lib/supabase/admin";
 
 export default async function JoinPage({ params }: { params: { code: string } }) {
   const supabase = createClient();
@@ -10,7 +10,7 @@ export default async function JoinPage({ params }: { params: { code: string } })
   }
 
   // Use admin client so RLS doesn't block lookup for non-members
-  const admin = createAdminClient();
+  const admin = createAdmin();
   const { data: trip } = await admin
     .from("trips")
     .select("id, name")
