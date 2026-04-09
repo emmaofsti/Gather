@@ -19,6 +19,7 @@ export function CaptureForm({
   const [stage, setStage] = useState<"loading" | "ready" | "capturing" | "countdown" | "uploading" | "error">("loading");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [countdown, setCountdown] = useState(3);
+  const [facing, setFacing] = useState<"environment" | "user">("environment");
 
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 500);
@@ -39,6 +40,7 @@ export function CaptureForm({
       audio: false,
     });
     streamRef.current = stream;
+    setFacing(facing);
     if (videoRef.current) {
       videoRef.current.srcObject = stream;
       await new Promise<void>((res) => {
@@ -70,14 +72,19 @@ export function CaptureForm({
     };
   }, []);
 
-  function grabFrame() {
+  function grabFrame(mirror = false) {
     const v = videoRef.current!;
     const w = v.videoWidth;
     const h = v.videoHeight;
     const c = document.createElement("canvas");
     c.width = w;
     c.height = h;
-    c.getContext("2d")!.drawImage(v, 0, 0, w, h);
+    const ctx = c.getContext("2d")!;
+    if (mirror) {
+      ctx.translate(w, 0);
+      ctx.scale(-1, 1);
+    }
+    ctx.drawImage(v, 0, 0, w, h);
     return c;
   }
 
@@ -140,7 +147,7 @@ export function CaptureForm({
         setCountdown(n);
         await new Promise((r) => setTimeout(r, 1000));
       }
-      const front = grabFrame();
+      const front = grabFrame(true);
       const backBlob = await canvasToBlob(back);
       const frontBlob = await canvasToBlob(front);
       await upload(backBlob, frontBlob);
@@ -193,7 +200,12 @@ export function CaptureForm({
         </div>
       ) : (
         <div className="relative aspect-square overflow-hidden rounded-chunk bg-black shadow-pop">
-          <video ref={videoRef} playsInline muted className="absolute inset-0 h-full w-full object-cover" />
+          <video
+            ref={videoRef}
+            playsInline
+            muted
+            className={`absolute inset-0 h-full w-full object-cover ${facing === "user" ? "scale-x-[-1]" : ""}`}
+          />
           {stage === "loading" && (
             <div className="absolute inset-0 flex items-center justify-center text-white">Starter kamera…</div>
           )}
