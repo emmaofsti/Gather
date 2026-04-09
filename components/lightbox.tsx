@@ -12,6 +12,7 @@ export type LightboxItem = {
   storage_path?: string;
   secondaryUrl?: string | null;
   secondary_storage_path?: string | null;
+  was_late?: boolean;
 };
 
 export function Lightbox({
@@ -138,10 +139,13 @@ export function Lightbox({
         )}
       </div>
 
-      {(item.uploader || time) && (
+      {(item.uploader || time || item.was_late) && (
         <div className="p-5 pb-8 text-center text-white">
           {item.uploader && <p className="font-bold">{item.uploader}</p>}
           {time && <p className="text-xs opacity-70">{time}</p>}
+          {item.was_late && (
+            <p className="mt-1 text-xs font-bold text-red-400">Bildet ble tatt for sent</p>
+          )}
         </div>
       )}
     </div>
