@@ -3,6 +3,9 @@ import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { MomentsGrid } from "./moments-grid";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function MomentsPage({ params }: { params: { id: string } }) {
   const { supabase, user } = await requireUser();
   const { data: trip } = await supabase.from("trips").select("*").eq("id", params.id).maybeSingle();

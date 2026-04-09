@@ -16,8 +16,9 @@ export function CaptureForm({
   const fallbackRef = useRef<HTMLInputElement>(null);
 
   const [now, setNow] = useState(Date.now());
-  const [stage, setStage] = useState<"loading" | "ready" | "capturing" | "uploading" | "error">("loading");
+  const [stage, setStage] = useState<"loading" | "ready" | "capturing" | "countdown" | "uploading" | "error">("loading");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [countdown, setCountdown] = useState(3);
 
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 500);
@@ -131,17 +132,25 @@ export function CaptureForm({
     const path = `${tripId}/${user.id}/${crypto.randomUUID()}.jpg`;
     const { error: upErr } = await supabase.storage.from("trip-media").upload(path, blob, { contentType: "image/jpeg" });
     if (upErr) { alert(upErr.message); setStage("ready"); return; }
-    const { error: insErr } = await supabase.from("media").insert({
-      trip_id: tripId,
-      user_id: user.id,
-      storage_path: path,
-      kind: "photo",
-      is_moment: true,
-      moment_round_id: round?.id ?? null,
-      was_late: isLate,
-      taken_at: new Date().toISOString(),
-    });
-    if (insErr) { alert(insErr.message); setStage("ready"); return; }
+    const { data: inserted, error: insErr } = await supabase
+      .from("media")
+      .insert({
+        trip_id: tripId,
+        user_id: user.id,
+        storage_path: path,
+        kind: "photo",
+        is_moment: true,
+        moment_round_id: round?.id ?? null,
+        was_late: isLate,
+        taken_at: new Date().toISOString(),
+      })
+      .select()
+      .single();
+    if (insErr || !inserted) {
+      alert("Insert feilet: " + (insErr?.message ?? "ukjent"));
+      setStage("ready");
+      return;
+    }
     streamRef.current?.getTracks().forEach((t) => t.stop());
     router.refresh();
     router.push(`/trips/${tripId}/moments`);
@@ -153,7 +162,12 @@ export function CaptureForm({
     try {
       const back = grabFrame();
       await startCamera("user");
-      await new Promise((r) => setTimeout(r, 250));
+      // 3-sec countdown before grabbing front frame
+      setStage("countdown");
+      for (let n = 3; n >= 1; n--) {
+        setCountdown(n);
+        await new Promise((r) => setTimeout(r, 1000));
+      }
       const front = grabFrame();
       const blob = await composite(back, front);
       await upload(blob);
@@ -213,6 +227,11 @@ export function CaptureForm({
           {(stage === "capturing" || stage === "uploading") && (
             <div className="absolute inset-0 flex items-center justify-center bg-black/40 text-white font-bold">
               {stage === "capturing" ? "Tar bilde…" : "Laster opp…"}
+            </div>
+          )}
+          {stage === "countdown" && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+              <span className="font-display text-9xl italic text-white drop-shadow-lg">{countdown}</span>
             </div>
           )}
         </div>
