@@ -111,7 +111,7 @@ export default async function TripPage({ params }: { params: { id: string } }) {
       {peakItems.length > 0 && (
         <div className="mt-2 px-5">
           <p className="mb-2 text-xs font-bold uppercase tracking-widest text-muted">★ Peaks</p>
-          <PeaksGrid peaks={peakItems as any} all={allItems as any} />
+          <PeaksGrid all={allItems as any} />
         </div>
       )}
 
