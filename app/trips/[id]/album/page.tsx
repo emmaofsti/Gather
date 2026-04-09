@@ -23,21 +23,21 @@ export default async function AlbumPage({ params }: { params: { id: string } }) 
     : { data: [] as any[] };
   const nameById = new Map((profs ?? []).map((p: any) => [p.id, p.display_name]));
 
-  const items = await Promise.all(
-    (media ?? []).map(async (m: any) => {
-      const { data } = await supabase.storage.from("trip-media").createSignedUrl(m.storage_path, 60 * 60);
-      return {
-        id: m.id,
-        storage_path: m.storage_path,
-        kind: m.kind,
-        url: data?.signedUrl ?? "",
-        created_at: m.created_at,
-        user_id: m.user_id,
-        is_peak: m.is_peak,
-        uploader: nameById.get(m.user_id) ?? "Ukjent",
-      };
-    })
-  );
+  const paths = (media ?? []).map((m: any) => m.storage_path);
+  const { data: signed } = paths.length
+    ? await supabase.storage.from("trip-media").createSignedUrls(paths, 60 * 60)
+    : { data: [] as any[] };
+  const urlByPath = new Map((signed ?? []).map((s: any) => [s.path, s.signedUrl]));
+  const items = (media ?? []).map((m: any) => ({
+    id: m.id,
+    storage_path: m.storage_path,
+    kind: m.kind,
+    url: urlByPath.get(m.storage_path) ?? "",
+    created_at: m.created_at,
+    user_id: m.user_id,
+    is_peak: m.is_peak,
+    uploader: nameById.get(m.user_id) ?? "Ukjent",
+  }));
 
   return (
     <main className="px-5 py-6">

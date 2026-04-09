@@ -139,14 +139,14 @@ export function Album({ tripId, initial, currentUserId, cropped }: { tripId: str
               >
                 {cropped ? (
                   m.kind === "video" ? (
-                    <video src={m.url} className="aspect-[3/4] w-full object-cover" style={{ objectPosition: "center 28%" }} />
+                    <video src={m.url} preload="metadata" playsInline className="aspect-[3/4] w-full object-cover" style={{ objectPosition: "center 28%" }} />
                   ) : (
-                    <img src={m.url} className="aspect-[3/4] w-full object-cover" style={{ objectPosition: "center 28%" }} alt="" />
+                    <img src={m.url} loading="lazy" decoding="async" className="aspect-[3/4] w-full object-cover" style={{ objectPosition: "center 28%" }} alt="" />
                   )
                 ) : m.kind === "video" ? (
-                  <video src={m.url} className="h-auto w-full" />
+                  <video src={m.url} preload="metadata" playsInline className="h-auto w-full" />
                 ) : (
-                  <img src={m.url} className="h-auto w-full" alt="" />
+                  <img src={m.url} loading="lazy" decoding="async" className="h-auto w-full" alt="" />
                 )}
                 {m.is_peak && (
                   <span className="absolute right-1.5 top-1.5 rounded-full bg-black/70 px-1.5 text-xs text-yellow-300">★</span>

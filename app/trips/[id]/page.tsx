@@ -17,37 +17,29 @@ export default async function TripPage({ params }: { params: { id: string } }) {
 
   const isOwner = trip.created_by === user.id;
 
-  const { data: board } = await supabase
-    .from("trip_boards")
-    .select("notes")
-    .eq("trip_id", trip.id)
-    .maybeSingle();
+  const [boardRes, linksRes, mediaRes, membersRes] = await Promise.all([
+    supabase.from("trip_boards").select("notes").eq("trip_id", trip.id).maybeSingle(),
+    supabase.from("trip_links").select("id, title, url").eq("trip_id", trip.id).order("created_at", { ascending: false }),
+    supabase.from("media").select("id, storage_path, kind, is_peak, created_at").eq("trip_id", trip.id).eq("is_moment", false).order("created_at", { ascending: false }),
+    supabase.from("trip_members").select("user_id, profiles(display_name)").eq("trip_id", trip.id),
+  ]);
+  const board = boardRes.data;
+  const links = linksRes.data;
+  const allMedia = mediaRes.data ?? [];
+  const members = membersRes.data;
 
-  const { data: links } = await supabase
-    .from("trip_links")
-    .select("id, title, url")
-    .eq("trip_id", trip.id)
-    .order("created_at", { ascending: false });
-
-  const { data: allMedia } = await supabase
-    .from("media")
-    .select("id, storage_path, kind, is_peak, created_at")
-    .eq("trip_id", trip.id)
-    .eq("is_moment", false)
-    .order("created_at", { ascending: false });
-
-  const allItems = await Promise.all(
-    (allMedia ?? []).map(async (m: any) => {
-      const { data } = await supabase.storage.from("trip-media").createSignedUrl(m.storage_path, 60 * 60);
-      return { id: m.id, url: data?.signedUrl ?? "", kind: m.kind, is_peak: m.is_peak, created_at: m.created_at };
-    })
-  );
-  const peakItems = allItems.filter((m: any) => m.is_peak).slice(0, 5);
-
-  const { data: members } = await supabase
-    .from("trip_members")
-    .select("user_id, profiles(display_name)")
-    .eq("trip_id", trip.id);
+  const paths = allMedia.map((m: any) => m.storage_path);
+  const { data: signed } = paths.length
+    ? await supabase.storage.from("trip-media").createSignedUrls(paths, 60 * 60)
+    : { data: [] as any[] };
+  const urlByPath = new Map((signed ?? []).map((s: any) => [s.path, s.signedUrl]));
+  const allItems = allMedia.map((m: any) => ({
+    id: m.id,
+    url: urlByPath.get(m.storage_path) ?? "",
+    kind: m.kind,
+    is_peak: m.is_peak,
+    created_at: m.created_at,
+  }));
 
   return (
     <main className="pb-10">

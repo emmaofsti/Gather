@@ -96,14 +96,17 @@ export function CropModal({
     const sy = (0 - top) * pxPerFrame;
     const sw = frameW * pxPerFrame;
     const sh = frameH * pxPerFrame;
+    const MAX = 1600;
+    const longest = Math.max(sw, sh);
+    const outScale = longest > MAX ? MAX / longest : 1;
     const canvas = document.createElement("canvas");
-    canvas.width = Math.round(sw);
-    canvas.height = Math.round(sh);
+    canvas.width = Math.round(sw * outScale);
+    canvas.height = Math.round(sh * outScale);
     const ctx = canvas.getContext("2d")!;
     ctx.drawImage(img, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
     canvas.toBlob((blob) => {
       if (blob) onDone(blob);
-    }, "image/jpeg", 0.92);
+    }, "image/jpeg", 0.88);
   }
 
   return (
