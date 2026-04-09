@@ -11,7 +11,7 @@ export default {
         muted: "#857C6E",     // warm gray
         card: "#FFFFFF",      // pure white card
         border: "#EAE2D2",    // soft warm border
-        accent: "#FF5A3C",    // coral
+        accent: "#0c3b13",    // deep green
         accent2: "#7C9E8A",   // sage
         lavender: "#B8A3D9",
       },
