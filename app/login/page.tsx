@@ -1,6 +1,6 @@
 "use client";
 import { Suspense, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 export default function LoginPage() {
@@ -12,25 +12,43 @@ export default function LoginPage() {
 }
 
 function LoginInner() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
-  const [sent, setSent] = useState(false);
+  const [code, setCode] = useState("");
+  const [step, setStep] = useState<"email" | "code">("email");
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const sp = useSearchParams();
   const next = sp.get("next") ?? "/";
 
-  async function send(e: React.FormEvent) {
+  async function sendCode(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setErr(null);
     const supabase = createClient();
     const { error } = await supabase.auth.signInWithOtp({
       email,
-      options: { emailRedirectTo: `${location.origin}/auth/callback?next=${encodeURIComponent(next)}` },
+      options: { shouldCreateUser: true },
     });
     setLoading(false);
     if (error) setErr(error.message);
-    else setSent(true);
+    else setStep("code");
+  }
+
+  async function verify(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true);
+    setErr(null);
+    const supabase = createClient();
+    const { error } = await supabase.auth.verifyOtp({
+      email,
+      token: code.trim(),
+      type: "email",
+    });
+    setLoading(false);
+    if (error) { setErr(error.message); return; }
+    router.push(next);
+    router.refresh();
   }
 
   return (
@@ -40,14 +58,8 @@ function LoginInner() {
         <h1 className="font-display text-7xl italic leading-none">Gather</h1>
         <p className="mt-3 text-base text-muted">Én tur. Ett sted. Samle minnene.</p>
       </div>
-      {sent ? (
-        <div className="rounded-chunk bg-card p-6 shadow-soft">
-          <p className="text-3xl">📬</p>
-          <p className="mt-2 font-bold">Sjekk e-posten din</p>
-          <p className="mt-1 text-sm text-muted">Trykk på lenken for å logge inn.</p>
-        </div>
-      ) : (
-        <form onSubmit={send} className="flex flex-col gap-3">
+      {step === "email" ? (
+        <form onSubmit={sendCode} className="flex flex-col gap-3">
           <input
             type="email"
             required
@@ -60,7 +72,36 @@ function LoginInner() {
             disabled={loading}
             className="rounded-chunk bg-fg px-5 py-4 text-lg font-bold text-bg shadow-soft transition active:scale-[0.99] disabled:opacity-50"
           >
-            {loading ? "Sender…" : "Send magisk lenke ✦"}
+            {loading ? "Sender…" : "Send kode ✦"}
+          </button>
+          {err && <p className="text-sm text-red-500">{err}</p>}
+        </form>
+      ) : (
+        <form onSubmit={verify} className="flex flex-col gap-3">
+          <p className="text-sm text-muted">Vi sendte en 6-sifret kode til {email}</p>
+          <input
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            autoComplete="one-time-code"
+            required
+            value={code}
+            onChange={(e) => setCode(e.target.value)}
+            placeholder="123456"
+            className="rounded-chunk border border-border bg-card px-5 py-4 text-center text-2xl tracking-widest shadow-soft outline-none focus:border-accent"
+          />
+          <button
+            disabled={loading}
+            className="rounded-chunk bg-fg px-5 py-4 text-lg font-bold text-bg shadow-soft transition active:scale-[0.99] disabled:opacity-50"
+          >
+            {loading ? "Sjekker…" : "Logg inn"}
+          </button>
+          <button
+            type="button"
+            onClick={() => { setStep("email"); setCode(""); setErr(null); }}
+            className="text-sm text-muted underline"
+          >
+            Bruk en annen e-post
           </button>
           {err && <p className="text-sm text-red-500">{err}</p>}
         </form>
