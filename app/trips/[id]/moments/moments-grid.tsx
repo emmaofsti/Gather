@@ -1,9 +1,27 @@
 "use client";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 import { Lightbox, type LightboxItem } from "@/components/lightbox";
 
-export function MomentsGrid({ items }: { items: (LightboxItem & { was_late?: boolean })[] }) {
+type Item = LightboxItem & { was_late?: boolean };
+
+export function MomentsGrid({ items: initial, currentUserId }: { items: Item[]; currentUserId?: string }) {
+  const [items, setItems] = useState(initial);
   const [open, setOpen] = useState<number | null>(null);
+  const router = useRouter();
+
+  async function handleDelete(item: LightboxItem) {
+    const supabase = createClient();
+    const { error } = await supabase.from("media").delete().eq("id", item.id);
+    if (error) { alert(error.message); return; }
+    if (item.storage_path) {
+      await supabase.storage.from("trip-media").remove([item.storage_path]);
+    }
+    setItems((prev) => prev.filter((x) => x.id !== item.id));
+    router.refresh();
+  }
+
   if (items.length === 0) {
     return (
       <div className="rounded-chunk bg-card p-10 text-center shadow-soft">
@@ -29,7 +47,15 @@ export function MomentsGrid({ items }: { items: (LightboxItem & { was_late?: boo
           </button>
         ))}
       </div>
-      {open !== null && <Lightbox items={items} index={open} onClose={() => setOpen(null)} />}
+      {open !== null && (
+        <Lightbox
+          items={items}
+          index={open}
+          onClose={() => setOpen(null)}
+          currentUserId={currentUserId}
+          onDelete={handleDelete}
+        />
+      )}
     </>
   );
 }

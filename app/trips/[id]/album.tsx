@@ -2,7 +2,7 @@
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { Lightbox } from "@/components/lightbox";
+import { Lightbox, type LightboxItem } from "@/components/lightbox";
 
 type Item = {
   id: string;
@@ -11,10 +11,11 @@ type Item = {
   url: string;
   created_at?: string;
   uploader?: string;
+  user_id?: string;
 };
 
-export function Album({ tripId, initial }: { tripId: string; initial: Item[] }) {
-  const [items] = useState(initial);
+export function Album({ tripId, initial, currentUserId }: { tripId: string; initial: Item[]; currentUserId?: string }) {
+  const [items, setItems] = useState(initial);
   const [uploading, setUploading] = useState(false);
   const [open, setOpen] = useState<number | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -38,6 +39,17 @@ export function Album({ tripId, initial }: { tripId: string; initial: Item[] }) 
       });
     }
     setUploading(false);
+    router.refresh();
+  }
+
+  async function handleDelete(item: LightboxItem) {
+    const supabase = createClient();
+    const { error } = await supabase.from("media").delete().eq("id", item.id);
+    if (error) { alert(error.message); return; }
+    if (item.storage_path) {
+      await supabase.storage.from("trip-media").remove([item.storage_path]);
+    }
+    setItems((prev) => prev.filter((x) => x.id !== item.id));
     router.refresh();
   }
 
@@ -84,7 +96,13 @@ export function Album({ tripId, initial }: { tripId: string; initial: Item[] }) 
       )}
 
       {open !== null && (
-        <Lightbox items={items} index={open} onClose={() => setOpen(null)} />
+        <Lightbox
+          items={items}
+          index={open}
+          onClose={() => setOpen(null)}
+          currentUserId={currentUserId}
+          onDelete={handleDelete}
+        />
       )}
     </>
   );

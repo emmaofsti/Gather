@@ -7,18 +7,25 @@ export type LightboxItem = {
   kind: string;
   uploader?: string;
   created_at?: string;
+  user_id?: string;
+  storage_path?: string;
 };
 
 export function Lightbox({
   items,
   index,
   onClose,
+  currentUserId,
+  onDelete,
 }: {
   items: LightboxItem[];
   index: number;
   onClose: () => void;
+  currentUserId?: string;
+  onDelete?: (item: LightboxItem) => Promise<void> | void;
 }) {
   const [i, setI] = useState(index);
+  const [deleting, setDeleting] = useState(false);
   const touchStart = useRef<number | null>(null);
 
   useEffect(() => {
@@ -54,6 +61,24 @@ export function Lightbox({
       })
     : null;
 
+  const canDelete = !!onDelete && !!currentUserId && item.user_id === currentUserId;
+
+  async function handleDelete() {
+    if (!onDelete || !item) return;
+    if (!confirm("Slette dette bildet?")) return;
+    setDeleting(true);
+    try {
+      await onDelete(item);
+      if (items.length <= 1) {
+        onClose();
+      } else {
+        setI((v) => Math.min(v, items.length - 2));
+      }
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   return (
     <div
       className="fixed inset-0 z-50 flex flex-col bg-black/95"
@@ -67,6 +92,17 @@ export function Lightbox({
         <span className="text-xs opacity-70">
           {i + 1} / {items.length}
         </span>
+        {canDelete ? (
+          <button
+            onClick={handleDelete}
+            disabled={deleting}
+            className="rounded-full bg-red-500/80 px-3 py-1.5 text-sm font-semibold disabled:opacity-50"
+          >
+            {deleting ? "Sletter…" : "Slett"}
+          </button>
+        ) : (
+          <span className="w-12" />
+        )}
       </div>
 
       <div className="relative flex flex-1 items-center justify-center px-4">

@@ -4,7 +4,7 @@ import { requireUser } from "@/lib/auth";
 import { MomentsGrid } from "./moments-grid";
 
 export default async function MomentsPage({ params }: { params: { id: string } }) {
-  const { supabase } = await requireUser();
+  const { supabase, user } = await requireUser();
   const { data: trip } = await supabase.from("trips").select("*").eq("id", params.id).maybeSingle();
   if (!trip) notFound();
 
@@ -24,6 +24,8 @@ export default async function MomentsPage({ params }: { params: { id: string } }
         kind: m.kind,
         was_late: m.was_late,
         created_at: m.created_at,
+        user_id: m.user_id,
+        storage_path: m.storage_path,
         uploader: m.profiles?.display_name ?? "Ukjent",
       };
     })
@@ -73,7 +75,7 @@ export default async function MomentsPage({ params }: { params: { id: string } }
       )}
 
       <h2 className="mb-3 text-xs font-bold uppercase tracking-widest text-muted">Alle moments</h2>
-      <MomentsGrid items={items} />
+      <MomentsGrid items={items} currentUserId={user.id} />
     </main>
   );
 }

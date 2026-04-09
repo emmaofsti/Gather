@@ -29,6 +29,7 @@ export default async function TripPage({ params }: { params: { id: string } }) {
         kind: m.kind,
         url: data?.signedUrl ?? "",
         created_at: m.created_at,
+        user_id: m.user_id,
         uploader: m.profiles?.display_name ?? "Ukjent",
       };
     })
@@ -87,7 +88,7 @@ export default async function TripPage({ params }: { params: { id: string } }) {
       </div>
 
       <div className="mt-2 px-5">
-        <Album tripId={trip.id} initial={items} />
+        <Album tripId={trip.id} initial={items} currentUserId={user.id} />
       </div>
     </main>
   );
