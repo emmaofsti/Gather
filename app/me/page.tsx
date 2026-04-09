@@ -1,5 +1,6 @@
 import { requireUser } from "@/lib/auth";
 import { SignOutButton } from "./sign-out";
+import { PasswordForm } from "./password-form";
 
 export default async function MePage() {
   const { user, profile } = await requireUser();
@@ -18,6 +19,7 @@ export default async function MePage() {
           </div>
         </div>
       </div>
+      <PasswordForm />
       <SignOutButton />
     </main>
   );
