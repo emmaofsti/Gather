@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { requireUser } from "@/lib/auth";
 
@@ -9,7 +8,6 @@ export default async function Home() {
   const { supabase, user, profile } = await requireUser();
   const today = new Date().toISOString().slice(0, 10);
 
-  // If user has an active (unexpired) moment round, jump straight to capture
   const skipped = new Set(
     (cookies().get("skipped_rounds")?.value ?? "").split(",").filter(Boolean)
   );
@@ -21,9 +19,7 @@ export default async function Home() {
     .order("triggered_at", { ascending: false })
     .limit(1)
     .maybeSingle();
-  if (activeRound && !skipped.has(activeRound.id)) {
-    redirect(`/trips/${activeRound.trip_id}/capture?round=${activeRound.id}`);
-  }
+  const showMomentBanner = activeRound && !skipped.has(activeRound.id);
 
   const { data: trips } = await supabase
     .from("trips")
@@ -42,6 +38,20 @@ export default async function Home() {
         <p className="text-sm text-muted">hei {profile.display_name?.toLowerCase()} ✿</p>
         <h1 className="font-display text-5xl italic leading-none">Mine Gatherings</h1>
       </header>
+
+      {showMomentBanner && (
+        <Link
+          href={`/trips/${activeRound!.trip_id}/capture?round=${activeRound!.id}`}
+          className="mb-6 flex items-center gap-3 rounded-chunk bg-accent p-4 text-white shadow-pop"
+        >
+          <span className="text-2xl">✦</span>
+          <div className="flex-1">
+            <p className="font-bold">Det er et moment nå!</p>
+            <p className="text-xs opacity-90">Trykk for å ta bildet</p>
+          </div>
+          <span className="text-xl">→</span>
+        </Link>
+      )}
 
       {trips?.length === 0 && (
         <div className="rounded-chunk bg-card p-10 text-center shadow-soft">
