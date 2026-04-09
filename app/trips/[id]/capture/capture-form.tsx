@@ -67,6 +67,13 @@ export function CaptureForm({
     })();
     return () => {
       cancelled = true;
+      const v = videoRef.current;
+      if (v) {
+        try { v.pause(); } catch {}
+        v.srcObject = null;
+        v.removeAttribute("src");
+        v.load();
+      }
       streamRef.current?.getTracks().forEach((t) => t.stop());
       streamRef.current = null;
     };
@@ -204,6 +211,13 @@ export function CaptureForm({
             ref={videoRef}
             playsInline
             muted
+            autoPlay
+            disablePictureInPicture
+            // @ts-ignore iOS attribute
+            webkit-playsinline="true"
+            // @ts-ignore iOS attribute
+            x-webkit-airplay="deny"
+            controlsList="nodownload nofullscreen noremoteplayback"
             className={`absolute inset-0 h-full w-full object-cover ${facing === "user" ? "scale-x-[-1]" : ""}`}
           />
           {stage === "loading" && (
