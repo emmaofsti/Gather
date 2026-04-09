@@ -17,6 +17,7 @@ function LoginInner() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [err, setErr] = useState<string | null>(null);
+  const [info, setInfo] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const sp = useSearchParams();
   const next = sp.get("next") ?? "/";
@@ -25,13 +26,37 @@ function LoginInner() {
     e.preventDefault();
     setLoading(true);
     setErr(null);
+    setInfo(null);
     const supabase = createClient();
-    const { error } =
-      mode === "login"
-        ? await supabase.auth.signInWithPassword({ email, password })
-        : await supabase.auth.signUp({ email, password });
+
+    if (mode === "login") {
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      setLoading(false);
+      if (error) { setErr(error.message); return; }
+      router.push(next);
+      router.refresh();
+      return;
+    }
+
+    // Signup
+    const { data, error } = await supabase.auth.signUp({ email, password });
+    if (error) {
+      setLoading(false);
+      setErr(error.message);
+      return;
+    }
+    // If email confirmation is ON in Supabase, session will be null here.
+    if (!data.session) {
+      // Try an immediate sign-in in case confirmation is OFF and signUp just didn't return session.
+      const { error: sErr } = await supabase.auth.signInWithPassword({ email, password });
+      if (sErr) {
+        setLoading(false);
+        setInfo("Konto opprettet ✦ Sjekk eposten din for å bekrefte kontoen, og logg så inn.");
+        setMode("login");
+        return;
+      }
+    }
     setLoading(false);
-    if (error) { setErr(error.message); return; }
     router.push(next);
     router.refresh();
   }
@@ -88,6 +113,7 @@ function LoginInner() {
           {loading ? "…" : mode === "login" ? "Logg inn ✦" : "Opprett konto ✦"}
         </button>
         {err && <p className="text-sm text-red-500">{err}</p>}
+        {info && <p className="rounded-2xl bg-card p-3 text-sm text-fg shadow-soft">{info}</p>}
       </form>
     </main>
   );
