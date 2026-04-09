@@ -21,11 +21,13 @@ export async function GET(req: Request) {
   const admin = createAdmin();
   const today = new Date().toISOString().slice(0, 10);
 
-  let tripsQuery = admin.from("trips").select("id, name");
+  let tripsQuery = admin.from("trips").select("id, name, start_date, end_date");
   if (tripFilter) {
     tripsQuery = tripsQuery.eq("id", tripFilter);
   } else {
-    tripsQuery = tripsQuery.or(`end_date.is.null,end_date.gte.${today}`);
+    tripsQuery = tripsQuery
+      .or(`start_date.is.null,start_date.lte.${today}`)
+      .or(`end_date.is.null,end_date.gte.${today}`);
   }
   const { data: trips, error: tripsErr } = await tripsQuery;
 
