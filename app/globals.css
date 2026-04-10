@@ -11,6 +11,11 @@
 html, body {
   background: #FBF7F0;
   color: #1A1612;
+  min-height: 100dvh;
+}
+
+html {
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
 }
 
 body {

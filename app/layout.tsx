@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   title: "Gather",
   description: "Én tur. Ett sted. Samle minnene.",
   manifest: "/manifest.webmanifest",
-  appleWebApp: { capable: true, title: "Gather", statusBarStyle: "default" },
+  appleWebApp: { capable: true, title: "Gather", statusBarStyle: "black-translucent" },
   icons: { apple: "/apple-touch-icon.png" },
 };
 
