@@ -1,16 +1,17 @@
 "use client";
 import { useEffect, useState } from "react";
+import { useT } from "@/lib/i18n-context";
 
 export function InstallBanner() {
   const [standalone, setStandalone] = useState(true);
   const [open, setOpen] = useState(false);
   const [platform, setPlatform] = useState<"ios" | "android" | "desktop">("desktop");
   const [tab, setTab] = useState<"ios" | "android">("ios");
+  const t = useT();
 
   useEffect(() => {
     const isStandalone =
       window.matchMedia("(display-mode: standalone)").matches ||
-      // iOS Safari
       (window.navigator as any).standalone === true;
     setStandalone(isStandalone);
 
@@ -22,6 +23,12 @@ export function InstallBanner() {
 
   if (standalone) return null;
 
+  const shareIcon = (
+    <InlineIcon>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+    </InlineIcon>
+  );
+
   return (
     <>
       <button
@@ -29,75 +36,55 @@ export function InstallBanner() {
         className="flex w-full items-center justify-between rounded-chunk bg-card px-5 py-4 text-left shadow-soft active:scale-[0.99]"
       >
         <div>
-          <p className="text-xs font-bold uppercase tracking-widest text-muted">Tips</p>
-          <p className="mt-1 text-sm font-semibold">Legg til Gather på hjemskjermen</p>
+          <p className="text-xs font-bold uppercase tracking-widest text-muted">{t("install.tip")}</p>
+          <p className="mt-1 text-sm font-semibold">{t("install.title")}</p>
         </div>
-        <span className="rounded-full bg-accent px-3 py-1.5 text-xs font-bold text-white">Vis hvordan</span>
+        <span className="rounded-full bg-accent px-3 py-1.5 text-xs font-bold text-white">{t("install.show")}</span>
       </button>
 
       {open && (
         <div className="fixed inset-0 z-[70] flex items-end justify-center bg-black/60 p-4 sm:items-center" onClick={() => setOpen(false)}>
-          <div
-            className="w-full max-w-md rounded-chunk bg-card p-6 shadow-pop"
-            onClick={(e) => e.stopPropagation()}
-          >
+          <div className="w-full max-w-md rounded-chunk bg-card p-6 shadow-pop" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between">
-              <p className="font-display text-2xl italic">Legg til på hjemskjermen</p>
+              <p className="font-display text-2xl italic">{t("install.modal_title")}</p>
               <button onClick={() => setOpen(false)} className="text-muted">✕</button>
             </div>
-            <p className="mt-2 text-sm text-muted">
-              Da får du Gather som en app — raskere, fullskjerm og med varsler for moments.
-            </p>
+            <p className="mt-2 text-sm text-muted">{t("install.modal_desc")}</p>
 
             {platform === "desktop" && (
               <div className="mt-4 flex gap-2">
-                <button
-                  onClick={() => setTab("ios")}
-                  className={`flex-1 rounded-full px-3 py-1.5 text-xs font-bold ${tab === "ios" ? "bg-fg text-bg" : "bg-bg2 text-muted"}`}
-                >
-                  iPhone
+                <button onClick={() => setTab("ios")} className={`flex-1 rounded-full px-3 py-1.5 text-xs font-bold ${tab === "ios" ? "bg-fg text-bg" : "bg-bg2 text-muted"}`}>
+                  {t("install.iphone")}
                 </button>
-                <button
-                  onClick={() => setTab("android")}
-                  className={`flex-1 rounded-full px-3 py-1.5 text-xs font-bold ${tab === "android" ? "bg-fg text-bg" : "bg-bg2 text-muted"}`}
-                >
-                  Android
+                <button onClick={() => setTab("android")} className={`flex-1 rounded-full px-3 py-1.5 text-xs font-bold ${tab === "android" ? "bg-fg text-bg" : "bg-bg2 text-muted"}`}>
+                  {t("install.android")}
                 </button>
               </div>
             )}
 
             {tab === "ios" && (
               <ol className="mt-5 flex flex-col gap-3 text-sm">
-                <Step n={1} text="Åpne denne siden i Safari eller Chrome" />
-                <Step n={2}>
-                  Trykk på <InlineIcon>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
-                  </InlineIcon> Del-knappen
-                </Step>
-                <Step n={3} text="Scroll ned og trykk «Legg til på Hjem-skjerm»" />
-                <Step n={4} text="Trykk «Legg til» oppe i høyre hjørne" />
+                <Step n={1} text={t("install.ios_1")} />
+                <Step n={2}>{t("install.tap_on")} {shareIcon} {t("install.ios_2")}</Step>
+                <Step n={3} text={t("install.ios_3")} />
+                <Step n={4} text={t("install.ios_4")} />
               </ol>
             )}
 
             {tab === "android" && (
               <ol className="mt-5 flex flex-col gap-3 text-sm">
-                <Step n={1} text="Åpne denne siden i Chrome (eller Samsung Internet)" />
-                <Step n={2}>
-                  Trykk på <InlineIcon>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
-                  </InlineIcon> Del-knappen (eller menyen ⋮)
-                </Step>
-                <Step n={3} text="Velg «Legg til på startskjerm»" />
-                <Step n={4} text="Bekreft" />
+                <Step n={1} text={t("install.android_1")} />
+                <Step n={2}>{t("install.tap_on")} {shareIcon} {t("install.android_2")}</Step>
+                <Step n={3} text={t("install.android_3")} />
+                <Step n={4} text={t("install.android_4")} />
               </ol>
             )}
-
 
             <button
               onClick={() => setOpen(false)}
               className="mt-6 w-full rounded-full bg-fg py-3 text-sm font-bold text-bg active:scale-[0.98]"
             >
-              Skjønner
+              {t("install.got_it")}
             </button>
           </div>
         </div>

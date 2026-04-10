@@ -54,16 +54,19 @@ export async function GET(req: Request) {
       continue;
     }
 
-    const { data: subs } = await admin
-      .from("push_subscriptions")
-      .select("endpoint, p256dh, auth")
-      .eq("user_id", chosen.user_id);
+    const [{ data: subs }, { data: chosenProfile }] = await Promise.all([
+      admin.from("push_subscriptions").select("endpoint, p256dh, auth").eq("user_id", chosen.user_id),
+      admin.from("profiles").select("language").eq("id", chosen.user_id).maybeSingle(),
+    ]);
+    const isEn = chosenProfile?.language === "en";
 
     let sent = 0;
     for (const sub of subs ?? []) {
       const r = await sendPush(sub as any, {
         title: "📸 Moment!",
-        body: `Du har 2 minutter — hva gjør du akkurat nå? (${trip.name})`,
+        body: isEn
+          ? `You have 2 minutes — what are you doing right now? (${trip.name})`
+          : `Du har 2 minutter — hva gjør du akkurat nå? (${trip.name})`,
         url: `/trips/${trip.id}/capture?round=${round.id}`,
       });
       if (r.ok) sent++;

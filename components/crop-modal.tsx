@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import { useT } from "@/lib/i18n-context";
 
 const ASPECTS: { label: string; v: number }[] = [
   { label: "1:1", v: 1 },
@@ -24,6 +25,7 @@ export function CropModal({
   const [tx, setTx] = useState(0);
   const [ty, setTy] = useState(0);
   const drag = useRef<{ x: number; y: number; tx: number; ty: number } | null>(null);
+  const t = useT();
 
   useEffect(() => {
     const url = URL.createObjectURL(file);
@@ -113,11 +115,11 @@ export function CropModal({
     <div className="fixed inset-0 z-[60] flex flex-col bg-black/95 text-white">
       <div className="flex items-center justify-between p-4">
         <button onClick={onCancel} className="rounded-full bg-white/10 px-3 py-1.5 text-sm font-semibold">
-          Avbryt
+          {t("crop.cancel")}
         </button>
-        <span className="text-xs opacity-70">Beskjær</span>
+        <span className="text-xs opacity-70">{t("crop.title")}</span>
         <button onClick={confirm} className="rounded-full bg-accent px-4 py-1.5 text-sm font-bold">
-          Ferdig
+          {t("crop.done")}
         </button>
       </div>
       <div className="flex flex-1 items-center justify-center p-4">

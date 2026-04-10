@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Lightbox, type LightboxItem } from "@/components/lightbox";
 import { CropModal } from "@/components/crop-modal";
+import { useT } from "@/lib/i18n-context";
 
 type Item = {
   id: string;
@@ -23,6 +24,7 @@ export function Album({ tripId, initial, currentUserId, cropped }: { tripId: str
     [items]
   );
   const [uploading, setUploading] = useState(false);
+  const t = useT();
   const [open, setOpen] = useState<number | null>(null);
   const [queue, setQueue] = useState<File[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -104,7 +106,7 @@ export function Album({ tripId, initial, currentUserId, cropped }: { tripId: str
       disabled={uploading}
       className={`${cropped ? "mt-4" : "mb-4 mt-2"} w-full rounded-full bg-accent py-4 text-base font-bold text-white shadow-soft transition active:scale-[0.98] disabled:opacity-50`}
     >
-      {uploading ? "Laster opp…" : "+ Last opp bilder"}
+      {uploading ? t("album.uploading") : t("album.upload")}
     </button>
   );
 
@@ -123,8 +125,8 @@ export function Album({ tripId, initial, currentUserId, cropped }: { tripId: str
       {items.length === 0 ? (
         <div className="rounded-chunk bg-card p-10 text-center shadow-soft">
           <p className="text-5xl">📷</p>
-          <p className="mt-3 font-semibold">Ingen bilder enda</p>
-          <p className="mt-1 text-sm text-muted">Last opp det første for å starte minnealbumet</p>
+          <p className="mt-3 font-semibold">{t("album.empty")}</p>
+          <p className="mt-1 text-sm text-muted">{t("album.empty_sub")}</p>
         </div>
       ) : (
         <div className="columns-2 gap-1 sm:columns-3 [&>*]:mb-1">

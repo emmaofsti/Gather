@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { BottomNav } from "@/components/bottom-nav";
+import { LangProvider } from "@/lib/i18n-context";
+import { getLang } from "@/lib/get-lang";
 
 export const metadata: Metadata = {
   title: "Gather",
@@ -19,12 +21,15 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const lang = await getLang();
   return (
-    <html lang="no">
+    <html lang={lang === "en" ? "en" : "no"}>
       <body>
-        <div className="mx-auto min-h-dvh max-w-md pb-24">{children}</div>
-        <BottomNav />
+        <LangProvider lang={lang}>
+          <div className="mx-auto min-h-dvh max-w-md pb-24">{children}</div>
+          <BottomNav />
+        </LangProvider>
         <script
           dangerouslySetInnerHTML={{
             __html: `if ('serviceWorker' in navigator) { window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(()=>{})); }`,
