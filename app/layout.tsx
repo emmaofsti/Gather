@@ -7,6 +7,7 @@ export const metadata: Metadata = {
   description: "Én tur. Ett sted. Samle minnene.",
   manifest: "/manifest.webmanifest",
   appleWebApp: { capable: true, title: "Gather", statusBarStyle: "default" },
+  icons: { apple: "/apple-touch-icon.png" },
 };
 
 export const viewport: Viewport = {
