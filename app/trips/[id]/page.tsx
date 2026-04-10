@@ -139,7 +139,7 @@ function MemberAvatars({ members }: { members: any[] }) {
       <div className="flex -space-x-2">
         {members.slice(0, 5).map((m, i) => {
           const name = m.profiles?.display_name ?? "?";
-          const colors = ["bg-accent", "bg-accent2", "bg-lavender", "bg-fg", "bg-bg2"];
+          const colors = ["bg-accent", "bg-accent2", "bg-honey", "bg-fg", "bg-bg2"];
           return (
             <div
               key={m.user_id + i}

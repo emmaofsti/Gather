@@ -13,7 +13,7 @@ export default {
         border: "#EAE2D2",    // soft warm border
         accent: "#0c3b13",    // deep green
         accent2: "#7C9E8A",   // sage
-        lavender: "#B8A3D9",
+        honey: "#C4963A",
       },
       fontFamily: {
         display: ['"Instrument Serif"', "ui-serif", "Georgia", "serif"],
