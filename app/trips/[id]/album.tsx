@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Lightbox, type LightboxItem } from "@/components/lightbox";
 import { CropModal } from "@/components/crop-modal";
-import { useT } from "@/lib/i18n-context";
+import { useT, useLang } from "@/lib/i18n-context";
 
 type Item = {
   id: string;
@@ -26,6 +26,7 @@ export function Album({ tripId, initial, currentUserId, cropped }: { tripId: str
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState("");
   const t = useT();
+  const lang = useLang();
   const [open, setOpen] = useState<number | null>(null);
   const [queue, setQueue] = useState<File[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -33,7 +34,12 @@ export function Album({ tripId, initial, currentUserId, cropped }: { tripId: str
 
   async function onFiles(files: FileList | null) {
     if (!files || files.length === 0) return;
-    const arr = Array.from(files);
+    const MAX_FILES = 10;
+    let arr = Array.from(files);
+    if (arr.length > MAX_FILES) {
+      alert(lang === "en" ? `Max ${MAX_FILES} files at a time` : `Maks ${MAX_FILES} filer om gangen`);
+      arr = arr.slice(0, MAX_FILES);
+    }
     // Single image → show crop modal
     if (arr.length === 1 && arr[0].type.startsWith("image")) {
       setQueue(arr);
