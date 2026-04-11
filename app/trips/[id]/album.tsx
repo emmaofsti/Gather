@@ -17,6 +17,26 @@ type Item = {
   is_peak?: boolean;
 };
 
+function AlbumThumb({ src, cropped }: { src: string; cropped?: boolean }) {
+  const [loaded, setLoaded] = useState(false);
+  return (
+    <div className="relative aspect-[3/4] w-full">
+      {!loaded && (
+        <div className="absolute inset-0 animate-pulse rounded-2xl bg-bg2" />
+      )}
+      <img
+        src={src}
+        loading="lazy"
+        decoding="async"
+        onLoad={() => setLoaded(true)}
+        className={`aspect-[3/4] w-full object-cover transition-opacity duration-300 ${loaded ? "opacity-100" : "opacity-0"}`}
+        style={cropped ? { objectPosition: "center 28%" } : undefined}
+        alt=""
+      />
+    </div>
+  );
+}
+
 function resizeImage(file: File, maxPx = 1600): Promise<Blob> {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -192,16 +212,10 @@ export function Album({ tripId, initial, currentUserId, cropped }: { tripId: str
                 className="relative block w-full overflow-hidden rounded-2xl bg-card shadow-soft transition active:scale-95"
                 style={{ breakInside: "avoid" }}
               >
-                {cropped ? (
-                  m.kind === "video" ? (
-                    <video src={m.url} preload="metadata" playsInline className="aspect-[3/4] w-full object-cover" style={{ objectPosition: "center 28%" }} />
-                  ) : (
-                    <img src={m.url} loading="lazy" decoding="async" className="aspect-[3/4] w-full object-cover" style={{ objectPosition: "center 28%" }} alt="" />
-                  )
-                ) : m.kind === "video" ? (
-                  <video src={m.url} preload="metadata" playsInline className="aspect-[3/4] w-full object-cover" />
+                {m.kind === "video" ? (
+                  <video src={m.url} preload="metadata" playsInline className="aspect-[3/4] w-full object-cover" style={cropped ? { objectPosition: "center 28%" } : undefined} />
                 ) : (
-                  <img src={m.url} loading="lazy" decoding="async" className="aspect-[3/4] w-full object-cover" alt="" />
+                  <AlbumThumb src={m.url} cropped={cropped} />
                 )}
                 {m.is_peak && (
                   <span className="absolute right-1.5 top-1.5 rounded-full bg-black/70 px-1.5 text-xs text-yellow-300">★</span>
