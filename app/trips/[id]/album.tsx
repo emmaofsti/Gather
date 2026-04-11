@@ -17,6 +17,24 @@ type Item = {
   is_peak?: boolean;
 };
 
+function resizeImage(file: File, maxPx = 1600): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const { naturalWidth: w, naturalHeight: h } = img;
+      if (w <= maxPx && h <= maxPx) { resolve(file); return; }
+      const scale = Math.min(maxPx / w, maxPx / h);
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.round(w * scale);
+      canvas.height = Math.round(h * scale);
+      canvas.getContext("2d")!.drawImage(img, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("resize failed"))), "image/jpeg", 0.85);
+    };
+    img.onerror = () => resolve(file);
+    img.src = URL.createObjectURL(file);
+  });
+}
+
 export function Album({ tripId, initial, currentUserId, cropped }: { tripId: string; initial: Item[]; currentUserId?: string; cropped?: boolean }) {
   const [items, setItems] = useState(initial);
   const ordered = useMemo(
@@ -54,9 +72,11 @@ export function Album({ tripId, initial, currentUserId, cropped }: { tripId: str
     for (let i = 0; i < arr.length; i += batch) {
       await Promise.all(
         arr.slice(i, i + batch).map(async (file) => {
-          const kind = file.type.startsWith("video") ? "video" : "photo";
-          const ext = file.name.split(".").pop() ?? (kind === "video" ? "mp4" : "jpg");
-          await uploadBlob(file, kind as "photo" | "video", ext);
+          const isVideo = file.type.startsWith("video");
+          const kind = isVideo ? "video" : "photo";
+          const ext = isVideo ? (file.name.split(".").pop() ?? "mp4") : "jpg";
+          const blob = isVideo ? file : await resizeImage(file);
+          await uploadBlob(blob, kind as "photo" | "video", ext);
           done++;
           setUploadProgress(`${done}/${total}`);
         })
@@ -179,9 +199,9 @@ export function Album({ tripId, initial, currentUserId, cropped }: { tripId: str
                     <img src={m.url} loading="lazy" decoding="async" className="aspect-[3/4] w-full object-cover" style={{ objectPosition: "center 28%" }} alt="" />
                   )
                 ) : m.kind === "video" ? (
-                  <video src={m.url} preload="metadata" playsInline className="h-auto w-full" />
+                  <video src={m.url} preload="metadata" playsInline className="aspect-[3/4] w-full object-cover" />
                 ) : (
-                  <img src={m.url} loading="lazy" decoding="async" className="h-auto w-full" alt="" />
+                  <img src={m.url} loading="lazy" decoding="async" className="aspect-[3/4] w-full object-cover" alt="" />
                 )}
                 {m.is_peak && (
                   <span className="absolute right-1.5 top-1.5 rounded-full bg-black/70 px-1.5 text-xs text-yellow-300">★</span>
