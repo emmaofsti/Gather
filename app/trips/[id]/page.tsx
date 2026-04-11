@@ -7,6 +7,7 @@ import { PushOptIn } from "@/components/push-optin";
 import { ShareTrip } from "@/components/share-trip";
 import { CoverEdit } from "@/components/cover-edit";
 import { Album } from "./album";
+import { CoverImage } from "@/components/cover-image";
 import { translate, type Lang } from "@/lib/i18n";
 
 export const dynamic = "force-dynamic";
@@ -49,7 +50,7 @@ export default async function TripPage({ params }: { params: { id: string } }) {
       {trip.cover_url ? (
         <>
           <div className="relative h-72 w-full overflow-hidden">
-            <img src={trip.cover_url} className="h-full w-full object-cover" alt="" />
+            <CoverImage src={trip.cover_url} />
             <div className="absolute inset-0 bg-gradient-to-t from-bg via-bg/10 to-transparent" />
             <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-transparent" />
             <Link href="/" className="top-safe absolute left-4 rounded-full border border-white/30 bg-black/40 px-3 py-1.5 text-sm font-semibold text-white backdrop-blur">

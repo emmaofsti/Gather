@@ -4,6 +4,23 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useT } from "@/lib/i18n-context";
 
+function resizeCover(file: File, maxWidth = 1200): Promise<Blob> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      if (img.naturalWidth <= maxWidth) { resolve(file); return; }
+      const scale = maxWidth / img.naturalWidth;
+      const canvas = document.createElement("canvas");
+      canvas.width = maxWidth;
+      canvas.height = Math.round(img.naturalHeight * scale);
+      canvas.getContext("2d")!.drawImage(img, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob((b) => resolve(b ?? file), "image/jpeg", 0.85);
+    };
+    img.onerror = () => resolve(file);
+    img.src = URL.createObjectURL(file);
+  });
+}
+
 export function CoverEdit({ tripId, hasCover }: { tripId: string; hasCover: boolean }) {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -17,9 +34,9 @@ export function CoverEdit({ tripId, hasCover }: { tripId: string; hasCover: bool
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-    const ext = file.name.split(".").pop() ?? "jpg";
-    const path = `${tripId}/${user.id}/cover-${Date.now()}.${ext}`;
-    const { error: upErr } = await supabase.storage.from("trip-media").upload(path, file, { contentType: file.type });
+    const resized = await resizeCover(file);
+    const path = `${tripId}/${user.id}/cover-${Date.now()}.jpg`;
+    const { error: upErr } = await supabase.storage.from("trip-media").upload(path, resized, { contentType: "image/jpeg" });
     if (upErr) { alert(upErr.message); setBusy(false); return; }
     const { data: signed } = await supabase.storage.from("trip-media").createSignedUrl(path, 60 * 60 * 24 * 365);
     if (signed?.signedUrl) {

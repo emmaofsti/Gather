@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { requireUser } from "@/lib/auth";
 import { InstallBanner } from "@/components/install-banner";
 import { translate, type Lang } from "@/lib/i18n";
+import { CoverImage } from "@/components/cover-image";
 
 export const dynamic = "force-dynamic";
 
@@ -102,7 +103,7 @@ function TripCard({ trip, locale }: { trip: any; locale: string }) {
     >
       {trip.cover_url ? (
         <div className="relative h-44 w-full overflow-hidden">
-          <img src={trip.cover_url} className="h-full w-full object-cover transition group-hover:scale-105" alt="" />
+          <CoverImage src={trip.cover_url} />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
           <div className="absolute inset-x-0 bottom-0 p-4 text-white">
             <h3 className="font-display text-2xl italic leading-tight">{trip.name}</h3>
