@@ -17,6 +17,31 @@ type Item = {
   is_peak?: boolean;
 };
 
+function VideoThumb({ src, cropped }: { src: string; cropped?: boolean }) {
+  const [loaded, setLoaded] = useState(false);
+  return (
+    <div className="relative aspect-[3/4] w-full">
+      {!loaded && (
+        <div className="absolute inset-0 animate-pulse rounded-2xl bg-bg2" />
+      )}
+      <video
+        src={`${src}#t=0.5`}
+        preload="metadata"
+        playsInline
+        muted
+        onLoadedData={() => setLoaded(true)}
+        className={`aspect-[3/4] w-full object-cover transition-opacity duration-300 ${loaded ? "opacity-100" : "opacity-0"}`}
+        style={cropped ? { objectPosition: "center 28%" } : undefined}
+      />
+      <div className="absolute inset-0 flex items-center justify-center">
+        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-black/50 backdrop-blur">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function AlbumThumb({ src, cropped }: { src: string; cropped?: boolean }) {
   const [loaded, setLoaded] = useState(false);
   return (
@@ -213,7 +238,7 @@ export function Album({ tripId, initial, currentUserId, cropped }: { tripId: str
                 style={{ breakInside: "avoid" }}
               >
                 {m.kind === "video" ? (
-                  <video src={m.url} preload="metadata" playsInline className="aspect-[3/4] w-full object-cover" style={cropped ? { objectPosition: "center 28%" } : undefined} />
+                  <VideoThumb src={m.url} cropped={cropped} />
                 ) : (
                   <AlbumThumb src={m.url} cropped={cropped} />
                 )}
