@@ -20,16 +20,14 @@ type Item = {
 function VideoThumb({ src, cropped }: { src: string; cropped?: boolean }) {
   const [loaded, setLoaded] = useState(false);
   return (
-    <div className="relative aspect-[3/4] w-full">
-      {!loaded && (
-        <div className="absolute inset-0 animate-pulse rounded-2xl bg-bg2" />
-      )}
+    <div className="relative aspect-[3/4] w-full bg-bg2">
       <video
         src={`${src}#t=0.5`}
         preload="metadata"
         playsInline
         muted
         onLoadedData={() => setLoaded(true)}
+        onError={() => setLoaded(true)}
         className={`aspect-[3/4] w-full object-cover transition-opacity duration-300 ${loaded ? "opacity-100" : "opacity-0"}`}
         style={cropped ? { objectPosition: "center 28%" } : undefined}
       />
@@ -43,17 +41,20 @@ function VideoThumb({ src, cropped }: { src: string; cropped?: boolean }) {
 }
 
 function AlbumThumb({ src, cropped }: { src: string; cropped?: boolean }) {
+  const imgRef = useRef<HTMLImageElement>(null);
   const [loaded, setLoaded] = useState(false);
+  useEffect(() => {
+    // If image is already cached/complete, onLoad won't fire
+    if (imgRef.current?.complete && imgRef.current.naturalWidth > 0) setLoaded(true);
+  }, []);
   return (
-    <div className="relative aspect-[3/4] w-full">
-      {!loaded && (
-        <div className="absolute inset-0 animate-pulse rounded-2xl bg-bg2" />
-      )}
+    <div className="relative aspect-[3/4] w-full bg-bg2">
       <img
+        ref={imgRef}
         src={src}
-        loading="lazy"
         decoding="async"
         onLoad={() => setLoaded(true)}
+        onError={() => setLoaded(true)}
         className={`aspect-[3/4] w-full object-cover transition-opacity duration-300 ${loaded ? "opacity-100" : "opacity-0"}`}
         style={cropped ? { objectPosition: "center 28%" } : undefined}
         alt=""
