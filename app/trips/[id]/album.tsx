@@ -24,15 +24,41 @@ export function Album({ tripId, initial, currentUserId, cropped }: { tripId: str
     [items]
   );
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState("");
   const t = useT();
   const [open, setOpen] = useState<number | null>(null);
   const [queue, setQueue] = useState<File[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
-  function onFiles(files: FileList | null) {
+  async function onFiles(files: FileList | null) {
     if (!files || files.length === 0) return;
-    setQueue(Array.from(files));
+    const arr = Array.from(files);
+    // Single image → show crop modal
+    if (arr.length === 1 && arr[0].type.startsWith("image")) {
+      setQueue(arr);
+      return;
+    }
+    // Multiple files → upload in parallel batches of 3
+    setUploading(true);
+    let done = 0;
+    const total = arr.length;
+    setUploadProgress(`${done}/${total}`);
+    const batch = 3;
+    for (let i = 0; i < arr.length; i += batch) {
+      await Promise.all(
+        arr.slice(i, i + batch).map(async (file) => {
+          const kind = file.type.startsWith("video") ? "video" : "photo";
+          const ext = file.name.split(".").pop() ?? (kind === "video" ? "mp4" : "jpg");
+          await uploadBlob(file, kind as "photo" | "video", ext);
+          done++;
+          setUploadProgress(`${done}/${total}`);
+        })
+      );
+    }
+    setUploading(false);
+    setUploadProgress("");
+    router.refresh();
   }
 
   async function uploadBlob(blob: Blob, kind: "photo" | "video", ext: string) {
@@ -107,7 +133,7 @@ export function Album({ tripId, initial, currentUserId, cropped }: { tripId: str
       disabled={uploading}
       className={`${cropped ? "mt-4" : "mb-4 mt-2"} w-full rounded-full bg-accent py-4 text-base font-bold text-white shadow-soft transition active:scale-[0.98] disabled:opacity-50`}
     >
-      {uploading ? t("album.uploading") : t("album.upload")}
+      {uploading ? (uploadProgress ? `${t("album.uploading")} ${uploadProgress}` : t("album.uploading")) : t("album.upload")}
     </button>
   );
 
