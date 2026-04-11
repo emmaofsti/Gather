@@ -2,7 +2,7 @@ name: Moments cron
 
 on:
   schedule:
-    - cron: "0 * * * *"
+    - cron: "*/30 6-21 * * *"
   workflow_dispatch:
 
 jobs:
