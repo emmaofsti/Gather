@@ -2,11 +2,13 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { useT } from "@/lib/i18n-context";
 
 export function CoverEdit({ tripId, hasCover }: { tripId: string; hasCover: boolean }) {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
+  const t = useT();
 
   async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -38,7 +40,7 @@ export function CoverEdit({ tripId, hasCover }: { tripId: string; hasCover: bool
             : "rounded-full border border-border bg-card px-4 py-2 text-xs font-bold shadow-soft disabled:opacity-50"
         }
       >
-        {busy ? "Laster…" : hasCover ? "✎ Endre cover" : "+ Legg til cover"}
+        {busy ? t("cover.loading") : hasCover ? t("cover.change") : t("cover.add")}
       </button>
       <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onFile} />
     </>

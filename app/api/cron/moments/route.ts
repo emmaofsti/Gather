@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createAdmin } from "@/lib/supabase/admin";
 import { sendPush } from "@/lib/push";
-import { isMomentHour } from "@/lib/slots";
+import { isWakingHour, shouldCreateMoment, getOsloHour } from "@/lib/slots";
 
 export const dynamic = "force-dynamic";
 
@@ -14,14 +14,18 @@ export async function GET(req: Request) {
   if (auth !== expected) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
-  if (!force && !isMomentHour()) {
-    return NextResponse.json({ skipped: true, reason: "not a moment hour" });
+  if (!force && !isWakingHour()) {
+    return NextResponse.json({ skipped: true, reason: "outside waking hours" });
   }
 
   const admin = createAdmin();
-  const today = new Date().toISOString().slice(0, 10);
+  const now = new Date();
+  const todayStart = new Date(
+    new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Oslo" }).format(now) + "T00:00:00+02:00"
+  );
 
   let tripsQuery = admin.from("trips").select("id, name, start_date, end_date");
+  const today = now.toISOString().slice(0, 10);
   if (tripFilter) {
     tripsQuery = tripsQuery.eq("id", tripFilter);
   } else {
@@ -30,11 +34,24 @@ export async function GET(req: Request) {
       .or(`end_date.is.null,end_date.gte.${today}`);
   }
   const { data: trips, error: tripsErr } = await tripsQuery;
-
   if (tripsErr) return NextResponse.json({ error: tripsErr.message }, { status: 500 });
 
   const results: any[] = [];
   for (const trip of trips ?? []) {
+    // Count how many rounds already exist today for this trip
+    const { count } = await admin
+      .from("moment_rounds")
+      .select("id", { count: "exact", head: true })
+      .eq("trip_id", trip.id)
+      .gte("created_at", todayStart.toISOString());
+
+    const roundsToday = count ?? 0;
+
+    if (!force && !shouldCreateMoment(roundsToday, now)) {
+      results.push({ trip: trip.id, skipped: true, roundsToday });
+      continue;
+    }
+
     const { data: members } = await admin
       .from("trip_members")
       .select("user_id")
@@ -74,8 +91,8 @@ export async function GET(req: Request) {
         await admin.from("push_subscriptions").delete().eq("endpoint", (sub as any).endpoint);
       }
     }
-    results.push({ trip: trip.id, user: chosen.user_id, round: round.id, sent });
+    results.push({ trip: trip.id, user: chosen.user_id, round: round.id, roundsToday: roundsToday + 1, sent });
   }
 
-  return NextResponse.json({ ok: true, results });
+  return NextResponse.json({ ok: true, hour: getOsloHour(), results });
 }

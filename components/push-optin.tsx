@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { useT } from "@/lib/i18n-context";
 
 function urlBase64ToUint8Array(base64String: string) {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
@@ -13,6 +14,7 @@ function urlBase64ToUint8Array(base64String: string) {
 export function PushOptIn() {
   const [state, setState] = useState<"loading" | "default" | "denied" | "unsupported" | "subscribed">("loading");
   const [busy, setBusy] = useState(false);
+  const t = useT();
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -68,7 +70,7 @@ export function PushOptIn() {
   if (state === "unsupported") {
     return (
       <div className="mb-3 rounded-chunk border border-border bg-card p-4 text-sm shadow-soft">
-        💡 Legg appen til hjem-skjermen for å få push-varsler (iOS).
+        {t("push.ios_hint")}
       </div>
     );
   }
@@ -81,8 +83,8 @@ export function PushOptIn() {
       <div className="flex items-center gap-3">
         <div className="flex h-10 w-10 items-center justify-center rounded-full bg-accent/15 text-lg">🔔</div>
         <div>
-          <p className="font-bold">Skru på moment-varsler</p>
-          <p className="text-xs text-muted">Få beskjed når det er din tur til å fange et øyeblikk</p>
+          <p className="font-bold">{t("push.enable")}</p>
+          <p className="text-xs text-muted">{t("push.enable_sub")}</p>
         </div>
       </div>
     </button>

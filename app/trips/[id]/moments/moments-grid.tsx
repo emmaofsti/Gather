@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Lightbox, type LightboxItem } from "@/components/lightbox";
 import { DualPhoto } from "@/components/dual-photo";
+import { useT } from "@/lib/i18n-context";
 
 type Item = LightboxItem & { was_late?: boolean };
 
@@ -11,13 +12,14 @@ export function MomentsGrid({ items: initial, currentUserId }: { items: Item[]; 
   const [items, setItems] = useState(initial);
   const [open, setOpen] = useState<number | null>(null);
   const router = useRouter();
+  const t = useT();
 
   async function handleDelete(item: LightboxItem) {
     const supabase = createClient();
     const { data: deleted, error } = await supabase.from("media").delete().eq("id", item.id).select();
     if (error) { alert(error.message); return; }
     if (!deleted || deleted.length === 0) {
-      alert("Sletting blokkert (RLS). Kjør migration 0002 i Supabase.");
+      alert(t("album.rls_error"));
       return;
     }
     const paths = [item.storage_path, item.secondary_storage_path].filter(Boolean) as string[];
@@ -32,8 +34,8 @@ export function MomentsGrid({ items: initial, currentUserId }: { items: Item[]; 
     return (
       <div className="rounded-chunk bg-card p-10 text-center shadow-soft">
         <p className="text-5xl">✨</p>
-        <p className="mt-3 font-semibold">Ingen moments enda</p>
-        <p className="mt-1 text-sm text-muted">Vent på neste runde — eller test fra album-siden</p>
+        <p className="mt-3 font-semibold">{t("moments.empty")}</p>
+        <p className="mt-1 text-sm text-muted">{t("moments.empty_sub")}</p>
       </div>
     );
   }

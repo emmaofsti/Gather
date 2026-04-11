@@ -113,7 +113,7 @@ export function CropModal({
 
   return (
     <div className="fixed inset-0 z-[60] flex flex-col bg-black/95 text-white">
-      <div className="flex items-center justify-between p-4">
+      <div className="pt-safe-top flex items-center justify-between px-4 pb-2">
         <button onClick={onCancel} className="rounded-full bg-white/10 px-3 py-1.5 text-sm font-semibold">
           {t("crop.cancel")}
         </button>
@@ -147,7 +147,7 @@ export function CropModal({
           )}
         </div>
       </div>
-      <div className="flex flex-col gap-3 p-4 pb-8">
+      <div className="pb-safe-bottom flex flex-col gap-3 p-4">
         <input
           type="range"
           min="1"

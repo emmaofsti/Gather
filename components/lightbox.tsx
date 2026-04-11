@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { DualPhoto } from "./dual-photo";
+import { useT, useLang } from "@/lib/i18n-context";
 
 export type LightboxItem = {
   id: string;
@@ -34,6 +35,8 @@ export function Lightbox({
   const [i, setI] = useState(index);
   const [deleting, setDeleting] = useState(false);
   const touchStart = useRef<number | null>(null);
+  const t = useT();
+  const lang = useLang();
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -59,8 +62,9 @@ export function Lightbox({
   const item = items[i];
   if (!item) return null;
 
+  const locale = lang === "en" ? "en" : "no";
   const time = item.created_at
-    ? new Date(item.created_at).toLocaleString("no", {
+    ? new Date(item.created_at).toLocaleString(locale, {
         day: "numeric",
         month: "short",
         hour: "2-digit",
@@ -72,7 +76,7 @@ export function Lightbox({
 
   async function handleDelete() {
     if (!onDelete || !item) return;
-    if (!confirm("Slette dette bildet?")) return;
+    if (!confirm(t("lightbox.confirm_delete"))) return;
     setDeleting(true);
     try {
       await onDelete(item);
@@ -92,9 +96,9 @@ export function Lightbox({
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
     >
-      <div className="flex items-center justify-between p-4 text-white">
+      <div className="pt-safe-top flex items-center justify-between px-4 pb-2 text-white">
         <button onClick={onClose} className="rounded-full bg-white/10 px-3 py-1.5 text-sm font-semibold">
-          ✕ Lukk
+          {t("lightbox.close")}
         </button>
         <span className="text-xs opacity-70">
           {i + 1} / {items.length}
@@ -105,7 +109,7 @@ export function Lightbox({
               onClick={() => onTogglePeak(item)}
               className="rounded-full bg-white/10 px-3 py-1.5 text-sm font-semibold"
             >
-              {item.is_peak ? "★ Peak" : "☆ Pin"}
+              {item.is_peak ? t("lightbox.peak") : t("lightbox.pin")}
             </button>
           )}
           {canDelete && (
@@ -114,7 +118,7 @@ export function Lightbox({
               disabled={deleting}
               className="rounded-full bg-red-500/80 px-3 py-1.5 text-sm font-semibold disabled:opacity-50"
             >
-              {deleting ? "Sletter…" : "Slett"}
+              {deleting ? t("lightbox.deleting") : t("lightbox.delete")}
             </button>
           )}
         </div>
@@ -134,7 +138,7 @@ export function Lightbox({
           <button
             onClick={() => setI(i - 1)}
             className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-white/15 p-3 text-2xl text-white backdrop-blur"
-            aria-label="Forrige"
+            aria-label={t("lightbox.prev")}
           >
             ‹
           </button>
@@ -143,7 +147,7 @@ export function Lightbox({
           <button
             onClick={() => setI(i + 1)}
             className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-white/15 p-3 text-2xl text-white backdrop-blur"
-            aria-label="Neste"
+            aria-label={t("lightbox.next")}
           >
             ›
           </button>
@@ -151,11 +155,11 @@ export function Lightbox({
       </div>
 
       {(item.uploader || time || item.was_late) && (
-        <div className="p-5 pb-8 text-center text-white">
+        <div className="pb-safe-bottom p-5 text-center text-white">
           {item.uploader && <p className="font-bold">{item.uploader}</p>}
           {time && <p className="text-xs opacity-70">{time}</p>}
           {item.was_late && (
-            <p className="mt-1 text-xs font-bold text-red-400">Bildet ble tatt for sent</p>
+            <p className="mt-1 text-xs font-bold text-red-400">{t("lightbox.late")}</p>
           )}
         </div>
       )}

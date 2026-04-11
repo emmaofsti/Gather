@@ -42,10 +42,11 @@ export function Album({ tripId, initial, currentUserId, cropped }: { tripId: str
     const path = `${tripId}/${user.id}/${crypto.randomUUID()}.${ext}`;
     const { error: upErr } = await supabase.storage.from("trip-media").upload(path, blob, { contentType: blob.type });
     if (upErr) { alert(upErr.message); return; }
-    await supabase.from("media").insert({
+    const { error: insErr } = await supabase.from("media").insert({
       trip_id: tripId, user_id: user.id, storage_path: path, kind,
       taken_at: new Date().toISOString(),
     });
+    if (insErr) { alert(insErr.message); return; }
   }
 
   async function handleCropDone(blob: Blob) {
@@ -81,7 +82,7 @@ export function Album({ tripId, initial, currentUserId, cropped }: { tripId: str
     const { data: deleted, error } = await supabase.from("media").delete().eq("id", item.id).select();
     if (error) { alert(error.message); return; }
     if (!deleted || deleted.length === 0) {
-      alert("Sletting blokkert (RLS). Kjør migration 0002 i Supabase.");
+      alert(t("album.rls_error"));
       return;
     }
     if (item.storage_path) {

@@ -2,10 +2,14 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { Album } from "../album";
+import { getLang } from "@/lib/get-lang";
+import { translate } from "@/lib/i18n";
 
 export const dynamic = "force-dynamic";
 
 export default async function AlbumPage({ params }: { params: { id: string } }) {
+  const lang = await getLang();
+  const tt = (key: Parameters<typeof translate>[0]) => translate(key, lang);
   const { supabase, user } = await requireUser();
   const { data: trip } = await supabase.from("trips").select("id, name").eq("id", params.id).maybeSingle();
   if (!trip) notFound();
@@ -36,7 +40,7 @@ export default async function AlbumPage({ params }: { params: { id: string } }) 
     created_at: m.created_at,
     user_id: m.user_id,
     is_peak: m.is_peak,
-    uploader: nameById.get(m.user_id) ?? "Ukjent",
+    uploader: nameById.get(m.user_id) ?? tt("album.unknown"),
   }));
 
   return (

@@ -1,12 +1,14 @@
 "use client";
 import { useState } from "react";
+import { useT } from "@/lib/i18n-context";
 
 export function ShareTrip({ code, name, dark }: { code: string; name: string; dark?: boolean }) {
   const [copied, setCopied] = useState(false);
+  const t = useT();
   async function share() {
     const url = `${location.origin}/join/${code}`;
     if (navigator.share) {
-      try { await navigator.share({ title: `Bli med på ${name}`, url }); return; } catch {}
+      try { await navigator.share({ title: `${t("share.join")} ${name}`, url }); return; } catch {}
     }
     await navigator.clipboard.writeText(url);
     setCopied(true);
@@ -21,7 +23,7 @@ export function ShareTrip({ code, name, dark }: { code: string; name: string; da
           : "rounded-full border border-white/30 bg-black/30 px-4 py-1.5 text-sm font-semibold text-white backdrop-blur"
       }
     >
-      {copied ? "Kopiert ✓" : "Del"}
+      {copied ? t("share.copied") : t("share.button")}
     </button>
   );
 }

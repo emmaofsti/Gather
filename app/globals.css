@@ -40,3 +40,22 @@ body::before {
 input[type="date"] {
   color-scheme: light;
 }
+
+/* Safe-area top padding for fullscreen overlays (lightbox, crop, etc.) */
+.pt-safe-top {
+  padding-top: max(1rem, env(safe-area-inset-top, 1rem));
+}
+
+.pb-safe-bottom {
+  padding-bottom: max(1rem, env(safe-area-inset-bottom, 1rem));
+}
+
+/* Top offset that respects safe area (for absolutely positioned elements) */
+.top-safe {
+  top: max(0.75rem, env(safe-area-inset-top, 0.75rem));
+}
+
+/* Pull content back up to cover the safe-area padding from parent */
+.-mt-safe-top {
+  margin-top: calc(-1 * max(1rem, env(safe-area-inset-top, 1rem)));
+}

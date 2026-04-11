@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { useT } from "@/lib/i18n-context";
 
 type Link = { id: string; url: string; title: string | null };
 
@@ -20,6 +21,7 @@ export function Board({
   const [newTitle, setNewTitle] = useState("");
   const [adding, setAdding] = useState(false);
   const timer = useRef<any>(null);
+  const t = useT();
 
   useEffect(() => {
     if (notes === initialNotes) return;
@@ -48,7 +50,7 @@ export function Board({
       .select()
       .single();
     setAdding(false);
-    if (error || !data) { alert(error?.message ?? "Feil"); return; }
+    if (error || !data) { alert(error?.message ?? t("trip.error")); return; }
     setLinks((l) => [data as Link, ...l]);
     setNewUrl("");
     setNewTitle("");
@@ -65,20 +67,20 @@ export function Board({
     <div className="flex flex-col gap-4">
       <div className="rounded-chunk bg-card p-5 shadow-soft">
         <div className="mb-2 flex items-center justify-between">
-          <p className="text-xs font-bold uppercase tracking-widest text-muted">Notater</p>
-          <p className="text-[10px] text-muted">{saving ? "Lagrer…" : "Alle kan skrive ✿"}</p>
+          <p className="text-xs font-bold uppercase tracking-widest text-muted">{t("trip.notes")}</p>
+          <p className="text-[10px] text-muted">{saving ? t("board.saving") : t("trip.notes_hint")}</p>
         </div>
         <textarea
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
-          placeholder="Skriv noe her — planer, minner, tanker…"
+          placeholder={t("trip.notes_placeholder")}
           rows={5}
           className="w-full resize-none bg-transparent text-base leading-relaxed outline-none placeholder:text-muted/60"
         />
       </div>
 
       <div className="rounded-chunk bg-card p-5 shadow-soft">
-        <p className="mb-3 text-xs font-bold uppercase tracking-widest text-muted">Lenker</p>
+        <p className="mb-3 text-xs font-bold uppercase tracking-widest text-muted">{t("trip.links")}</p>
         <div className="flex flex-col gap-2">
           {links.map((l) => (
             <div key={l.id} className="flex items-center gap-2 rounded-2xl border border-border bg-bg px-3 py-2">
@@ -88,13 +90,13 @@ export function Board({
               <button onClick={() => deleteLink(l.id)} className="text-xs text-muted">✕</button>
             </div>
           ))}
-          {links.length === 0 && <p className="text-xs text-muted">Ingen lenker enda</p>}
+          {links.length === 0 && <p className="text-xs text-muted">{t("trip.no_links")}</p>}
         </div>
         <form onSubmit={addLink} className="mt-3 flex flex-col gap-2">
           <input
             value={newTitle}
             onChange={(e) => setNewTitle(e.target.value)}
-            placeholder="Tittel (valgfri)"
+            placeholder={t("trip.link_title_placeholder")}
             className="rounded-2xl border border-border bg-bg px-3 py-2 text-sm outline-none focus:border-accent"
           />
           <div className="flex gap-2">

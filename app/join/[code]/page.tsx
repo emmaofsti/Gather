@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdmin } from "@/lib/supabase/admin";
+import { translate, type Lang } from "@/lib/i18n";
 
 export default async function JoinPage({ params }: { params: { code: string } }) {
   const supabase = createClient();
@@ -9,7 +10,6 @@ export default async function JoinPage({ params }: { params: { code: string } })
     redirect(`/login?next=${encodeURIComponent(`/join/${params.code}`)}`);
   }
 
-  // Use admin client so RLS doesn't block lookup for non-members
   const admin = createAdmin();
   const { data: trip } = await admin
     .from("trips")
@@ -18,10 +18,13 @@ export default async function JoinPage({ params }: { params: { code: string } })
     .maybeSingle();
 
   if (!trip) {
+    const { data: profile } = await supabase.from("profiles").select("language").eq("id", user!.id).maybeSingle();
+    const lang = (profile?.language as Lang) ?? "no";
+    const t = (key: Parameters<typeof translate>[0]) => translate(key, lang);
     return (
       <main className="px-5 py-12 text-center">
-        <h1 className="text-2xl font-bold">Ugyldig invite</h1>
-        <p className="mt-2 text-muted">Koden finnes ikke.</p>
+        <h1 className="text-2xl font-bold">{t("join.invalid")}</h1>
+        <p className="mt-2 text-muted">{t("join.not_found")}</p>
       </main>
     );
   }

@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { useT } from "@/lib/i18n-context";
 
 export function CaptureForm({
   tripId,
@@ -11,6 +12,7 @@ export function CaptureForm({
   round: { id: string; closes_at: string } | null;
 }) {
   const router = useRouter();
+  const t = useT();
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const fallbackRef = useRef<HTMLInputElement>(null);
@@ -60,7 +62,7 @@ export function CaptureForm({
         if (!cancelled) setStage("ready");
       } catch (e: any) {
         if (!cancelled) {
-          setErrorMsg(e?.message ?? "Kamera ikke tilgjengelig");
+          setErrorMsg(e?.message ?? t("capture.no_camera"));
           setStage("error");
         }
       }
@@ -133,7 +135,7 @@ export function CaptureForm({
       .select()
       .single();
     if (insErr || !inserted) {
-      alert("Insert feilet: " + (insErr?.message ?? "ukjent"));
+      alert(t("capture.insert_fail") + (insErr?.message ?? "unknown"));
       setStage("ready");
       return;
     }
@@ -159,7 +161,7 @@ export function CaptureForm({
       const frontBlob = await canvasToBlob(front);
       await upload(backBlob, frontBlob);
     } catch (e: any) {
-      alert(e?.message ?? "Noe gikk galt");
+      alert(e?.message ?? t("capture.error"));
       setStage("ready");
     }
   }
@@ -177,12 +179,12 @@ export function CaptureForm({
           {isLate ? (
             <>
               <p className="text-4xl">⏰</p>
-              <p className="mt-2 font-display text-2xl italic">For sent</p>
-              <p className="mt-1 text-xs text-muted">Markeres som "sent"</p>
+              <p className="mt-2 font-display text-2xl italic">{t("capture.too_late")}</p>
+              <p className="mt-1 text-xs text-muted">{t("capture.marked_late")}</p>
             </>
           ) : (
             <>
-              <p className="text-xs font-bold uppercase tracking-widest text-muted">Tid igjen</p>
+              <p className="text-xs font-bold uppercase tracking-widest text-muted">{t("capture.time_left")}</p>
               <p className="mt-1 font-display text-6xl italic tabular-nums leading-none">
                 {String(Math.floor(remaining! / 60))}:{String(remaining! % 60).padStart(2, "0")}
               </p>
@@ -191,18 +193,18 @@ export function CaptureForm({
         </div>
       ) : (
         <div className="rounded-chunk bg-card p-4 text-center text-sm text-muted shadow-soft">
-          Ingen aktiv runde — fritt moment 🌿
+          {t("capture.free_moment")}
         </div>
       )}
 
       {stage === "error" ? (
         <div className="rounded-chunk bg-card p-6 text-center shadow-soft">
-          <p className="text-sm text-muted">Kamera ikke tilgjengelig{errorMsg ? `: ${errorMsg}` : ""}</p>
+          <p className="text-sm text-muted">{t("capture.no_camera")}{errorMsg ? `: ${errorMsg}` : ""}</p>
           <button
             onClick={() => fallbackRef.current?.click()}
             className="mt-4 w-full rounded-chunk bg-accent py-5 text-lg font-bold text-white shadow-pop"
           >
-            📷 Velg fra rull
+            {t("capture.from_roll")}
           </button>
         </div>
       ) : (
@@ -221,11 +223,11 @@ export function CaptureForm({
             className={`absolute inset-0 h-full w-full object-cover ${facing === "user" ? "scale-x-[-1]" : ""}`}
           />
           {stage === "loading" && (
-            <div className="absolute inset-0 flex items-center justify-center text-white">Starter kamera…</div>
+            <div className="absolute inset-0 flex items-center justify-center text-white">{t("capture.starting")}</div>
           )}
           {(stage === "capturing" || stage === "uploading") && (
             <div className="absolute inset-0 flex items-center justify-center bg-black/40 text-white font-bold">
-              {stage === "capturing" ? "Tar bilde…" : "Laster opp…"}
+              {stage === "capturing" ? t("capture.taking") : t("capture.uploading_cap")}
             </div>
           )}
           {stage === "countdown" && (
@@ -241,7 +243,7 @@ export function CaptureForm({
         disabled={stage !== "ready"}
         className="rounded-chunk bg-accent py-7 text-xl font-bold text-white shadow-pop transition active:scale-95 disabled:opacity-50"
       >
-        {stage === "uploading" ? "Laster opp…" : stage === "capturing" ? "Snap…" : "📸 Ta moment"}
+        {stage === "uploading" ? t("capture.uploading_cap") : stage === "capturing" ? t("capture.snap") : t("capture.take")}
       </button>
 
       <input

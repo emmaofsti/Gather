@@ -2,11 +2,14 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { requireUser } from "@/lib/auth";
 import { InstallBanner } from "@/components/install-banner";
+import { translate, type Lang } from "@/lib/i18n";
 
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
   const { supabase, user, profile } = await requireUser();
+  const lang = (profile.language as Lang) ?? "no";
+  const t = (key: Parameters<typeof translate>[0]) => translate(key, lang);
   const today = new Date().toISOString().slice(0, 10);
 
   const skipped = new Set(
@@ -27,17 +30,18 @@ export default async function Home() {
     .select("id, name, start_date, end_date, cover_url")
     .order("start_date", { ascending: false });
 
-  const upcoming = (trips ?? []).filter((t) => t.start_date && t.start_date > today);
-  const active = (trips ?? []).filter((t) =>
-    (!t.start_date || t.start_date <= today) && (!t.end_date || t.end_date >= today)
+  const upcoming = (trips ?? []).filter((tr) => tr.start_date && tr.start_date > today);
+  const active = (trips ?? []).filter((tr) =>
+    (!tr.start_date || tr.start_date <= today) && (!tr.end_date || tr.end_date >= today)
   );
-  const past = (trips ?? []).filter((t) => t.end_date && t.end_date < today);
+  const past = (trips ?? []).filter((tr) => tr.end_date && tr.end_date < today);
+  const locale = lang === "en" ? "en" : "no";
 
   return (
     <main className="px-5 py-8">
       <header className="mb-8">
-        <p className="text-sm text-muted">hei {profile.display_name?.toLowerCase()} ✿</p>
-        <h1 className="font-display text-5xl italic leading-none">Mine Gatherings</h1>
+        <p className="text-sm text-muted">{t("home.hi")} {profile.display_name?.toLowerCase()} ✿</p>
+        <h1 className="font-display text-5xl italic leading-none">{t("home.title")}</h1>
       </header>
 
       <div className="mb-6">
@@ -51,8 +55,8 @@ export default async function Home() {
         >
           <span className="text-2xl">✦</span>
           <div className="flex-1">
-            <p className="font-bold">Det er et moment nå!</p>
-            <p className="text-xs opacity-90">Trykk for å ta bildet</p>
+            <p className="font-bold">{t("home.moment_now")}</p>
+            <p className="text-xs opacity-90">{t("home.moment_tap")}</p>
           </div>
           <span className="text-xl">→</span>
         </Link>
@@ -61,22 +65,22 @@ export default async function Home() {
       {trips?.length === 0 && (
         <div className="rounded-chunk bg-card p-10 text-center shadow-soft">
           <p className="text-5xl">🌅</p>
-          <p className="mt-3 font-semibold">Ingen gatherings enda</p>
-          <p className="mt-1 text-sm text-muted">Lag din første og inviter gjengen</p>
+          <p className="mt-3 font-semibold">{t("home.no_gatherings")}</p>
+          <p className="mt-1 text-sm text-muted">{t("home.no_gatherings_sub")}</p>
           <Link href="/trips/new" className="mt-5 inline-block rounded-full bg-fg px-6 py-3 text-sm font-bold text-bg">
-            Lag gathering
+            {t("home.create")}
           </Link>
         </div>
       )}
 
-      {active.length > 0 && <Section title="Pågående" trips={active} accent />}
-      {upcoming.length > 0 && <Section title="Kommende" trips={upcoming} />}
-      {past.length > 0 && <Section title="Tidligere" trips={past} />}
+      {active.length > 0 && <Section title={t("home.active")} trips={active} accent locale={locale} />}
+      {upcoming.length > 0 && <Section title={t("home.upcoming")} trips={upcoming} locale={locale} />}
+      {past.length > 0 && <Section title={t("home.past")} trips={past} locale={locale} />}
     </main>
   );
 }
 
-function Section({ title, trips, accent }: { title: string; trips: any[]; accent?: boolean }) {
+function Section({ title, trips, accent, locale }: { title: string; trips: any[]; accent?: boolean; locale: string }) {
   return (
     <section className="mb-10">
       <div className="mb-4 flex items-center gap-2">
@@ -84,13 +88,13 @@ function Section({ title, trips, accent }: { title: string; trips: any[]; accent
         {accent && <span className="h-2 w-2 animate-pulse rounded-full bg-accent" />}
       </div>
       <div className="flex flex-col gap-4">
-        {trips.map((t) => <TripCard key={t.id} trip={t} />)}
+        {trips.map((tr) => <TripCard key={tr.id} trip={tr} locale={locale} />)}
       </div>
     </section>
   );
 }
 
-function TripCard({ trip }: { trip: any }) {
+function TripCard({ trip, locale }: { trip: any; locale: string }) {
   return (
     <Link
       href={`/trips/${trip.id}`}
@@ -103,7 +107,7 @@ function TripCard({ trip }: { trip: any }) {
           <div className="absolute inset-x-0 bottom-0 p-4 text-white">
             <h3 className="font-display text-2xl italic leading-tight">{trip.name}</h3>
             {trip.start_date && (
-              <p className="text-xs opacity-90">{formatRange(trip.start_date, trip.end_date)}</p>
+              <p className="text-xs opacity-90">{formatRange(trip.start_date, trip.end_date, locale)}</p>
             )}
           </div>
         </div>
@@ -112,7 +116,7 @@ function TripCard({ trip }: { trip: any }) {
           <div className="mb-3 flex h-32 items-center justify-center rounded-2xl bg-bg2 text-4xl">🏕️</div>
           <h3 className="font-display text-2xl italic leading-tight">{trip.name}</h3>
           {trip.start_date && (
-            <p className="mt-1 text-xs text-muted">{formatRange(trip.start_date, trip.end_date)}</p>
+            <p className="mt-1 text-xs text-muted">{formatRange(trip.start_date, trip.end_date, locale)}</p>
           )}
         </div>
       )}
@@ -120,9 +124,9 @@ function TripCard({ trip }: { trip: any }) {
   );
 }
 
-function formatRange(start: string, end?: string | null) {
-  const s = new Date(start).toLocaleDateString("no", { day: "numeric", month: "short" });
+function formatRange(start: string, end?: string | null, locale = "no") {
+  const s = new Date(start).toLocaleDateString(locale, { day: "numeric", month: "short" });
   if (!end) return s;
-  const e = new Date(end).toLocaleDateString("no", { day: "numeric", month: "short", year: "numeric" });
+  const e = new Date(end).toLocaleDateString(locale, { day: "numeric", month: "short", year: "numeric" });
   return `${s} – ${e}`;
 }

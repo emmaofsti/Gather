@@ -2,11 +2,15 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { MomentsGrid } from "./moments-grid";
+import { getLang } from "@/lib/get-lang";
+import { translate, type Lang } from "@/lib/i18n";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export default async function MomentsPage({ params }: { params: { id: string } }) {
+  const lang = await getLang();
+  const tt = (key: Parameters<typeof translate>[0]) => translate(key, lang);
   const { supabase, user } = await requireUser();
   const { data: trip } = await supabase.from("trips").select("*").eq("id", params.id).maybeSingle();
   if (!trip) notFound();
@@ -43,7 +47,7 @@ export default async function MomentsPage({ params }: { params: { id: string } }
         user_id: m.user_id,
         storage_path: m.storage_path,
         secondary_storage_path: m.secondary_storage_path,
-        uploader: nameById.get(m.user_id) ?? "Ukjent",
+        uploader: nameById.get(m.user_id) ?? tt("album.unknown"),
       };
     })
   );
@@ -63,7 +67,7 @@ export default async function MomentsPage({ params }: { params: { id: string } }
 
       {yesterdays.length > 0 && (
         <section className="mb-8">
-          <h2 className="mb-3 text-xs font-bold uppercase tracking-widest text-muted">Gårsdagens moments</h2>
+          <h2 className="mb-3 text-xs font-bold uppercase tracking-widest text-muted">{tt("moments.yesterday")}</h2>
           <div className="-mx-5 flex gap-3 overflow-x-auto px-5 pb-2">
             {yesterdays.map((m, i) => (
               <div
@@ -81,7 +85,7 @@ export default async function MomentsPage({ params }: { params: { id: string } }
         </section>
       )}
 
-      <h2 className="mb-3 text-xs font-bold uppercase tracking-widest text-muted">Alle moments</h2>
+      <h2 className="mb-3 text-xs font-bold uppercase tracking-widest text-muted">{tt("moments.all")}</h2>
       <MomentsGrid items={items} currentUserId={user.id} />
     </main>
   );

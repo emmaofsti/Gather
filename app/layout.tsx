@@ -27,7 +27,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang={lang === "en" ? "en" : "no"}>
       <body>
         <LangProvider lang={lang}>
-          <div className="mx-auto min-h-dvh max-w-md pb-24">{children}</div>
+          <div className="pt-safe-top mx-auto min-h-dvh max-w-md pb-24">{children}</div>
           <BottomNav />
         </LangProvider>
         <script

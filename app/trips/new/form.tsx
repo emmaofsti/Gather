@@ -3,9 +3,11 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { generateInviteCode } from "@/lib/invite";
+import { useT } from "@/lib/i18n-context";
 
 export function NewTripForm() {
   const router = useRouter();
+  const t = useT();
   const [name, setName] = useState("");
   const [start, setStart] = useState("");
   const [end, setEnd] = useState("");
@@ -40,7 +42,7 @@ export function NewTripForm() {
       })
       .select()
       .single();
-    if (error || !trip) { setErr(error?.message ?? "Feil"); setBusy(false); return; }
+    if (error || !trip) { setErr(error?.message ?? t("trip.error")); setBusy(false); return; }
 
     await supabase.from("trip_members").insert({ trip_id: trip.id, user_id: user.id });
 
@@ -71,36 +73,36 @@ export function NewTripForm() {
         ) : (
           <div className="flex h-full flex-col items-center justify-center gap-2 text-muted">
             <span className="text-5xl">🖼️</span>
-            <span className="text-sm font-semibold">Velg cover-bilde</span>
-            <span className="text-xs">(valgfritt)</span>
+            <span className="text-sm font-semibold">{t("new.cover")}</span>
+            <span className="text-xs">{t("new.cover_optional")}</span>
           </div>
         )}
       </button>
       <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onFile} />
 
       <div>
-        <label className="mb-1.5 block text-xs font-bold uppercase tracking-widest text-muted">Navn</label>
+        <label className="mb-1.5 block text-xs font-bold uppercase tracking-widest text-muted">{t("new.name")}</label>
         <input
           value={name}
           onChange={(e) => setName(e.target.value)}
           required
-          placeholder="Lofoten 2026"
+          placeholder={t("new.name_placeholder")}
           className="w-full rounded-chunk border border-border bg-card px-5 py-4 text-lg shadow-soft outline-none focus:border-accent"
         />
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="mb-1.5 block text-xs font-bold uppercase tracking-widest text-muted">Start</label>
+          <label className="mb-1.5 block text-xs font-bold uppercase tracking-widest text-muted">{t("new.start")}</label>
           <input type="date" value={start} onChange={(e) => setStart(e.target.value)} className="w-full rounded-chunk border border-border bg-card px-4 py-4 shadow-soft" />
         </div>
         <div>
-          <label className="mb-1.5 block text-xs font-bold uppercase tracking-widest text-muted">Slutt</label>
+          <label className="mb-1.5 block text-xs font-bold uppercase tracking-widest text-muted">{t("new.end")}</label>
           <input type="date" value={end} onChange={(e) => setEnd(e.target.value)} className="w-full rounded-chunk border border-border bg-card px-4 py-4 shadow-soft" />
         </div>
       </div>
       {err && <p className="text-sm text-red-500">{err}</p>}
       <button disabled={busy} className="mt-2 rounded-chunk bg-fg py-5 text-lg font-bold text-bg shadow-soft disabled:opacity-50">
-        {busy ? "Oppretter…" : "Opprett gathering ✦"}
+        {busy ? t("new.creating") : t("new.submit")}
       </button>
     </form>
   );
