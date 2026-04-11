@@ -7,15 +7,14 @@ import { PushOptIn } from "@/components/push-optin";
 import { ShareTrip } from "@/components/share-trip";
 import { CoverEdit } from "@/components/cover-edit";
 import { Album } from "./album";
-import { getLang } from "@/lib/get-lang";
 import { translate, type Lang } from "@/lib/i18n";
 
 export const dynamic = "force-dynamic";
 
 export default async function TripPage({ params }: { params: { id: string } }) {
-  const lang = await getLang();
+  const { supabase, user, profile } = await requireUser();
+  const lang = (profile.language as Lang) ?? "no";
   const tt = (key: Parameters<typeof translate>[0]) => translate(key, lang);
-  const { supabase, user } = await requireUser();
   const { data: trip } = await supabase.from("trips").select("*").eq("id", params.id).maybeSingle();
   if (!trip) notFound();
 

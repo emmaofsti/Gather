@@ -2,16 +2,15 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { MomentsGrid } from "./moments-grid";
-import { getLang } from "@/lib/get-lang";
 import { translate, type Lang } from "@/lib/i18n";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export default async function MomentsPage({ params }: { params: { id: string } }) {
-  const lang = await getLang();
+  const { supabase, user, profile } = await requireUser();
+  const lang = (profile.language as Lang) ?? "no";
   const tt = (key: Parameters<typeof translate>[0]) => translate(key, lang);
-  const { supabase, user } = await requireUser();
   const { data: trip } = await supabase.from("trips").select("*").eq("id", params.id).maybeSingle();
   if (!trip) notFound();
 
@@ -29,28 +28,26 @@ export default async function MomentsPage({ params }: { params: { id: string } }
     : { data: [] as any[] };
   const nameById = new Map((profs ?? []).map((p: any) => [p.id, p.display_name]));
 
-  const items = await Promise.all(
-    (moments ?? []).map(async (m: any) => {
-      const { data } = await supabase.storage.from("trip-media").createSignedUrl(m.storage_path, 60 * 60);
-      let secondaryUrl: string | null = null;
-      if (m.secondary_storage_path) {
-        const { data: d2 } = await supabase.storage.from("trip-media").createSignedUrl(m.secondary_storage_path, 60 * 60);
-        secondaryUrl = d2?.signedUrl ?? null;
-      }
-      return {
-        id: m.id,
-        url: data?.signedUrl ?? "",
-        secondaryUrl,
-        kind: m.kind,
-        was_late: m.was_late,
-        created_at: m.created_at,
-        user_id: m.user_id,
-        storage_path: m.storage_path,
-        secondary_storage_path: m.secondary_storage_path,
-        uploader: nameById.get(m.user_id) ?? tt("album.unknown"),
-      };
-    })
+  const allPaths = (moments ?? []).flatMap((m: any) =>
+    [m.storage_path, m.secondary_storage_path].filter(Boolean) as string[]
   );
+  const { data: signed } = allPaths.length
+    ? await supabase.storage.from("trip-media").createSignedUrls(allPaths, 60 * 60)
+    : { data: [] as any[] };
+  const urlByPath = new Map((signed ?? []).map((s: any) => [s.path, s.signedUrl]));
+
+  const items = (moments ?? []).map((m: any) => ({
+    id: m.id,
+    url: urlByPath.get(m.storage_path) ?? "",
+    secondaryUrl: m.secondary_storage_path ? (urlByPath.get(m.secondary_storage_path) ?? null) : null,
+    kind: m.kind,
+    was_late: m.was_late,
+    created_at: m.created_at,
+    user_id: m.user_id,
+    storage_path: m.storage_path,
+    secondary_storage_path: m.secondary_storage_path,
+    uploader: nameById.get(m.user_id) ?? tt("album.unknown"),
+  }));
 
   const now = new Date();
   const startToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());

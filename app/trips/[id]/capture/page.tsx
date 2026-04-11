@@ -2,8 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { CaptureForm } from "./capture-form";
-import { getLang } from "@/lib/get-lang";
-import { translate } from "@/lib/i18n";
+import { translate, type Lang } from "@/lib/i18n";
 
 export default async function CapturePage({
   params,
@@ -12,9 +11,9 @@ export default async function CapturePage({
   params: { id: string };
   searchParams: { round?: string };
 }) {
-  const lang = await getLang();
+  const { supabase, profile } = await requireUser();
+  const lang = (profile.language as Lang) ?? "no";
   const tt = (key: Parameters<typeof translate>[0]) => translate(key, lang);
-  const { supabase } = await requireUser();
   const { data: trip } = await supabase.from("trips").select("id, name").eq("id", params.id).maybeSingle();
   if (!trip) notFound();
 
